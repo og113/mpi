@@ -1,6 +1,7 @@
 %function to apply variation of parameters given user inputs
 %arguments are: newParameter, parameterName and inputP
 %where inputP is the input phi i.e. bubble, periodic instanton etc.
+%NB - has not been checked for consistency.
 function changeParameters(newParameter, parameterName, inputP)
     global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
     global R X lambda mass v epsilon theta;
@@ -103,7 +104,7 @@ function changeParameters(newParameter, parameterName, inputP)
             b = Lt/(Nt-1);
             Ltm = b*(Ntm-1);
         elseif parameterName == 'lambda'
-            epsilon *= lambda/newParameter; //epsilon scales like 1/lambda
+            epsilon = epsilon*(lambda/newParameter); %epsilon scales like 1/lambda
             lambda = newParameter;
             R = 2*(d-1)*mass^3/epsilon/lambda/3;
             X = mass*R;
