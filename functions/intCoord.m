@@ -6,12 +6,12 @@ function XintCoords = intCoords(locNum, direction, Nt)
     Param = zeros(d,1);
     Param(d) = locNum;
     intCoordsVec(d) = floor(locNum/N^(d-2)/Nt);
-    for k=1:(d-1-direction)
-        Param(d-k) = Param(d-k+1) - intCoordsVec(d-k+1)*N^(d-k-1)*Nt;
-        if k~=(d-1)
-            intCoordsVec(d-k) = floor(Param(d-k)/N^(d-k-1)/Nt);
+    for l=1:(d-1-direction)
+        Param(d-l) = Param(d-l+1) - intCoordsVec(d-l+1)*N^(d-l-1)*Nt;
+        if l~=(d-1)
+            intCoordsVec(d-l) = floor(Param(d-l)/N^(d-l-1)/Nt);
         else
-            intCoordsVec(d-k) = floor(Param(d-k));
+            intCoordsVec(d-l) = floor(Param(d-l));
         end
     end
     XintCoords = intCoordsVec(direction+1);

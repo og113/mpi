@@ -11,6 +11,8 @@ function Xansw = askQuestions
         Xansw.minValue = input('choose min value: ');
         Xansw.maxValue = input('choose max value: ');
         Xansw.totalLoops = input('choose number of loops: ');
+    else
+        Xansw.totalLoops = 1;
     end
     Xansw.printChoice = input('print DDS matrix or -DS vector or the action (earlier) or phi or none? (m/v/a/p/n): ' ,'s');
     if Xansw.printChoice ~= 'n'

@@ -3,11 +3,11 @@
 function XeCoords = eCoords(locNum)
     global d Nt Lt L a b;
     XeCoords = zeros(d,1);
-    for k=1:d
-        if k==1
-            XeCoords(k) = i*(-Lt + b*intCoord(locNum,0,Nt));
+    for l=1:d
+        if l==1
+            XeCoords(l) = 1i*(-Lt + b*intCoord(locNum,0,Nt));
         else
-            XeCoords(k) = -L/2 + a*intCoord(locNum,k-1,Nt);
+            XeCoords(l) = -L/2 + a*intCoord(locNum,l-1,Nt);
         end
     end
 end
