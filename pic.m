@@ -63,12 +63,12 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
                     perturbReal(k*Nt*N^(j-1)+1) = 0; %zero perturbation at initial time
                     perturbReal((k+1)*Nt*N^(j-1)) = perturbReal((k+1)*Nt*N^(j-1)-1); %zero derivative at final time
                     perturbImag(k*Nt*N^(j-1)+1) = 0;
-                    perturbImag((k+1)*Nt*N^(j-1)) = perturbImag((k+1)*Nt*N^(j-1)-1);
+                    perturbImag((k+1)*Nt*N^(j-1)) = 0;
                 elseif inP == 'p' %periodic instanton
                     perturbReal(k*Nt*N^(j-1)+1) = perturbReal(k*Nt*N^(j-1)+2); %zero time derivative at both time boundaries
                     perturbReal((k+1)*Nt*N^(j-1)) = perturbReal((k+1)*Nt*N^(j-1)-1);
-                    perturbImag(k*Nt*N^(j-1)+1) = perturbImag(k*Nt*N^(j-1)+2);
-                    perturbImag((k+1)*Nt*N^(j-1)) = perturbImag((k+1)*Nt*N^(j-1)-1);
+                    perturbImag(k*Nt*N^(j-1)+1) = 0;
+                    perturbImag((k+1)*Nt*N^(j-1)) = 0;
                 end
             end
         end
@@ -186,7 +186,7 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
             end
             if t==(Nt-1)
                 if inP=='p' || inP=='b'
-                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1/b; %zero time derivative %don't forget to clear count3
+                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1/b; %zero time derivative %don't forget to clear c3
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+1; DDSv(c3) = -1/b;
                 elseif inP=='t' || inP=='f'
@@ -201,9 +201,96 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
                         DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
                     elseif inP=='p'
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = -1/b; %zero time derivative
-                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
+                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part zero
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = 1/b;
                     end
                 else
-                    %when writing minusDS and DDS in terms of Cp, don't
-                    %forget to take real and imag parts
+                    for k=0:2*d
+                        sign = (-1)^k;
+                        deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
+                        direc = floor(k/2);
+                        if direc == 0
+                            minusDS(2*j+1) = minusDS(2*j+1) + real(a^(d-1)*Cp(j+sign+1)/dt(j+deltaSign));
+                            minusDS(2*j+2) = minusDS(2*j+2) + imag(a^(d-1)*Cp(j+sign+1)/dt(j+deltaSign));
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neigh(j,0,sign,Nt)+1; DDSv = -real(a^(d-1)/dt(j+deltasign));
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neigh(j,0,sign,Nt)+2; DDSv = -imag(a^(d-1)/dt(j+deltasign));
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neigh(j,0,sign,Nt)+1; DDSv = -imag(a^(d-1)/dt(j+deltasign));
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neigh(j,0,sign,Nt)+2; DDSv = -real(a^(d-1)/dt(j+deltasign));
+                        else
+                            minusDS(2*j+1) = minusDS(2*j+1) - real(a^(d-3)*Dt(j)*Cp(neigh(j,direc,sign,Nt)+1)); %note Dt(j) = Dt(j+Nt) etc.
+                            minusDS(2*j+2) = minusDS(2*j+2) - imag(a^(d-3)*Dt(j)*Cp(neigh(j,direc,sign,Nt)+1));
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neigh(j,direc,sign,Nt)+1; DDSv = real(a^(d-3)*Dt(j));
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neigh(j,direc,sign,Nt)+2; DDSv = -imag(a^(d-3)*Dt(j));
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neigh(j,direc,sign,Nt)+1; DDSv = imag(a^(d-3)*Dt(j));
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neigh(j,direc,sign,Nt)+2; DDSv = real(a^(d-3)*Dt(j));
+                        end
+                        temp0 = a^(d-1)*(1/dt(j) + 1/dt(j-1));
+                        temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
+                        temp2 = -siteMeasure*(2*(d-1)/a^2 + (lambda/2)*(3*Cp(j+1)^2 - v^2));
+
+                        minusDS(2*j+1) = real(temp1 - temp0*Cp(j+1));
+                        minusDS(2*j+2) = imag(temp1 - temp0*Cp(j+1));
+                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv = real(temp2 + temp0);
+                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+2; DDSv = imag(temp2 - temp0);
+                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+1; DDSv = imag(-temp2 + temp0);
+                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv = real(-temp2 + temp0);
+                    end
+                end
+            end
+        end
+        kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
+        action = kinetic + potL + potE;
+        DDS = sparse(DDSm,DDSn,DDSv,2*Edim,2*Edim);
+
+        if runsCount == aq.printRun %printing early if asked for
+            if aq.printChoice == 'a'
+                disp(['kinetic = ',num2str(kinetic)]);
+                disp(['lambda potential = ',num2str(potL)]);
+                disp(['epsilon potential = ',num2str(potE)]);
+                disp(['action = ',num2str(action)]);
+            elseif aq.printChoice == 'p'
+                save '/home/og113/Documents/mpi/data/phiEarly.dat' p -ascii;
+            elseif aq.printChoice == 'v'
+                save '/home/og113/Documents/mpi/data/minusDS.dat' minusDS -ascii;
+            elseif aq.printChoice == 'm'
+                spy(DDS);
+                save '/home/og113/Documents/mpi/data/DDS.dat' DDS -ascii;
+            else
+                disp('early print error');
+            end
+        end
+
+        setup.type = 'nofill'; %incomplete LU factorization does not increase the number of non-zero elements in DDS - can also try 'ilutp' here
+        setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        [Lo,Up] = ilu(DDS,setup);
+
+        tol = 1e-12; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
+        maxit = 20; %max number of iterations
+        [delta,flag] = bicg(DDS,minusDS,tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
+            if flag == 1
+                disp('bicg interated maxit times but did not converge');
+            elseif flag == 2
+                disp('preconditioner M was ill-conditioned');
+            elseif flag == 3
+                disp('bicg stagnated (two consecutive iterates were the same)');
+            elseif flag == 4
+                disp('one of the scalar quantities calculated during bicg became too small or too large to continue computing');
+            end
+        end
+
+        p = p + delta; %p -> p'
+
+        %pNeg and pZer plus log(det(DDS)) stuff
+
+        stopTime = toc;
+
+        %convergenceQuestions
+
+    end %closing newton-raphson loop
+
+    %propagating solution back in minkowskian time
+    %checking that converged
+    %printing to terminal
+    %saving action etc data and phi to file
+end%closing while loop
