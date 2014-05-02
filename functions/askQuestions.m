@@ -17,5 +17,7 @@ function Xansw = askQuestions
     Xansw.printChoice = input('print DDS matrix or -DS vector or the action (earlier) or phi or none? (m/v/a/p/n): ' ,'s');
     if Xansw.printChoice ~= 'n'
         Xansw.printRun = input('choose run to print: ');
+    else
+       Xansw.printRun = -1; 
     end
 end
