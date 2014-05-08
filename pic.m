@@ -1,17 +1,17 @@
 %script to find the periodic instanton of the stable phi^4 with negative
 %mass
 
-aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defaults in initialization
+aq.inputP = 'p'; %struct to hold answers to questions aq short for 'answers to questions' - defaults in initialization
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
 aq.minValue = 32;
 aq.maxValue = 64;
 aq.totalLoops = 1;
-aq.printChoice = 'v';
+aq.printChoice = 'p';
 aq.printRun = [1];
 
-%%aq = askQuestions; %asking questions
+aq = askQuestions; %asking questions
 inP = aq.inputP; %just because I write this a lot
 
 global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
@@ -77,8 +77,8 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
     
     for j=0:(Edim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
         rhoSqrd = -eCoord(j,0)^2;
-        rho1Sqrd = -(eCoord(j,0)+1i*Lt/2)^2; %explicitly 2d here as would need rho3 and rho4 for the 3d case etc.
-        rho2Sqrd = -(eCoord(j,0)+1i*Lt/2)^2; 
+        rho1Sqrd = -(eCoord(j,0)-1i*Lt/2)^2; %explicitly 2d here as would need rho3 and rho4 for the 3d case etc.
+        rho2Sqrd = -(eCoord(j,0)-1i*Lt/2)^2; 
         for k=1:(d-1)
             rhoSqrd = rhoSqrd + eCoord(j,k)^2;
             rho1Sqrd = rho1Sqrd + (eCoord(j,k)+R*cos(theta))^2;
@@ -299,15 +299,17 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
             end
         end
 
-        %%setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
-        %%setup.droptol = 1e-8; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
-        %%setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
-        %%setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
-        %%[Lo,Up] = ilu(DDS,setup);
+        [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        
+        setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
+        setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
+        setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
+        [Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
 
         tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
-        [delta,flag,relres,iter,resvec] = lsqr(DDS,minusDS,tol,maxit); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
             if flag == 1
                 disp('linear solver interated maxit times but did not converge!');
@@ -329,7 +331,7 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
             end
         end
 
-        p = p + delta; %p -> p'
+        p = p + delta(orderCol)'; %p -> p'
 
         %pNeg and pZer plus log(det(DDS)) stuff
 
