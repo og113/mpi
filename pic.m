@@ -38,7 +38,7 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
     runsCount = 0;
     runsTest = 1;
     closeness = 1e-4;
-    minRuns = 6;
+    minRuns = 3;
     
     p = zeros(2*Edim,1); %phi, in the euclidean domain
     perturbReal = zeros(Edim,1); %perturbations
@@ -75,14 +75,11 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
     end
     
     for j=0:(Edim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
-        rhoSqrd = -eCoord(j,0)^2;
-        rho1Sqrd = -(eCoord(j,0)+1i*Lt/2)^2; %explicitly 2d here as would need rho3 and rho4 for the 3d case etc.
-        rho2Sqrd = -(eCoord(j,0)+1i*Lt/2)^2; 
-        for k=1:(d-1)
-            rhoSqrd = rhoSqrd + eCoord(j,k)^2;
-            rho1Sqrd = rho1Sqrd + (eCoord(j,k)+R*cos(theta))^2;
-            rho2Sqrd = rho2Sqrd + (eCoord(j,k)-R*cos(theta))^2;
-        end
+        t = eCoord(j,0);
+        x = eCoord(j,1); %explicitly 2d
+        rhoSqrd = -t^2 + x^2;
+        rho1Sqrd = -(t-1i*Lt/2)^2 + (x+R*cos(theta))^2; %explicitly 2d here as would need rho3 and rho4 for the 3d case etc.
+        rho2Sqrd = -(t-1i*Lt/2)^2 + (x-R*cos(theta))^2; 
         rho = real(sqrt(rhoSqrd)); %rho should be real even without the real()
         rho1 = real(sqrt(rho1Sqrd));
         rho2 = real(sqrt(rho2Sqrd));
@@ -107,10 +104,10 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
                     p(2*j+1) = roots(1);
                 elseif rho1>(R+alpha/mass) || rho2>(R+alpha/mass)
                     p(2*j+1) = roots(3);
-                elseif real(eCoord(j,1))>0 %explicitly 2d here, note that the coord should be real
+                elseif real(x)>0 %explicitly 2d here, note that the coord should be real
                     p(2*j+1) = v*tanh(mass*(rho1-R)/2);
                     %pNeg(2*j+1) = v/cosh(mass*(rho1-R)/2)^2;
-                elseif real(eCoord(j,1))<0
+                elseif real(x)<0
                     p(2*j+1) = v*tanh(mass*(rho2-R)/2);
                     %pNeg(2*j+1) = v/cosh(mass*(rho2-R)/2)^2;
                 else
@@ -151,7 +148,7 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
         actionLast = action;
         
         minusDS = zeros(2*Edim,1); %-dS/d(p)
-        Cp = complex(zeros(Edim,1)); %complex p
+        Cp = vecComplex(p,Edim);
         %pZero = zeros(2*Edim,1); %zero mode = d(p)/dx - note that in more than 2d we will need more pZeros
         
         nonz = 0; %number of nonzero elements of DDS
@@ -174,9 +171,10 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
         
         for j=0:(Edim-1)
             t = intCoord(j,0,Nt);
-            siteMeasure = a^(d-1)*Dt(j); %for sites in time
-            linkMeasure = a^(d-1)*dt(j); %for links in time
-            Cp(j+1) = p(2*j+1) + 1i*p(2*j+2); %complex euclidean phi
+            dtj = dt(j);
+            dtjm = dt(j-1);
+            Dtj = Dt(j);
+            siteMeasure = a^(d-1)*Dtj; %for sites in time
             
             potL = potL - siteMeasure*(lambda/8)*(Cp(j+1)^2-v^2)^2;
             potE = potE - siteMeasure*epsilon*(Cp(j+1)-v)/v/2;
@@ -195,43 +193,47 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
                 end
             else
-                kinetic = kinetic + linkMeasure*(Cp(j+2) - Cp(j+1))^2/dt(j)^2/2;
+                kinetic = kinetic + a^(d-1)*(Cp(j+2) - Cp(j+1))^2/dtj/2;
                 if t==0
                     if inP=='b' || inP=='t' || inP=='f'
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1; %zero change at boundary
                         DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
                     elseif inP=='p'
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = -1/b; %zero time derivative
-                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part zero
+                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = 1/b;
                     end
                 else
                     for k=0:(2*d-1)
                         sign = (-1)^k;
-                        deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
+                        dtd = dtj;
+                        if sign==-1
+                           dtd = dtjm; 
+                        end
                         direc = floor(k/2);
                         if direc == 0
-                            minusDS(2*j+1) = minusDS(2*j+1) + real(a^(d-1)*Cp(j+sign+1)/dt(j+deltaSign));
-                            minusDS(2*j+2) = minusDS(2*j+2) + imag(a^(d-1)*Cp(j+sign+1)/dt(j+deltaSign));
-                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neigh(j,0,sign,Nt)+1; DDSv(c3) = -real(a^(d-1)/dt(j+deltaSign));
-                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neigh(j,0,sign,Nt)+2; DDSv(c3) = imag(a^(d-1)/dt(j+deltaSign));
-                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neigh(j,0,sign,Nt)+1; DDSv(c3) = -imag(a^(d-1)/dt(j+deltaSign));
-                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neigh(j,0,sign,Nt)+2; DDSv(c3) = -real(a^(d-1)/dt(j+deltaSign));
+                            minusDS(2*j+1) = minusDS(2*j+1) + real(a^(d-1)*Cp(j+sign+1)/dtd);
+                            minusDS(2*j+2) = minusDS(2*j+2) + imag(a^(d-1)*Cp(j+sign+1)/dtd);
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+sign)+1; DDSv(c3) = -real(a^(d-1)/dtd);
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+sign)+2; DDSv(c3) = imag(a^(d-1)/dtd);
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*(j+sign)+1; DDSv(c3) = -imag(a^(d-1)/dtd);
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*(j+sign)+2; DDSv(c3) = -real(a^(d-1)/dtd);
                         else
-                            minusDS(2*j+1) = minusDS(2*j+1) - real(a^(d-3)*Dt(j)*Cp(neigh(j,direc,sign,Nt)+1)); %note Dt(j) = Dt(j+Nt) etc.
-                            minusDS(2*j+2) = minusDS(2*j+2) - imag(a^(d-3)*Dt(j)*Cp(neigh(j,direc,sign,Nt)+1));
-                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neigh(j,direc,sign,Nt)+1; DDSv(c3) = real(a^(d-3)*Dt(j));
-                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neigh(j,direc,sign,Nt)+2; DDSv(c3) = -imag(a^(d-3)*Dt(j));
-                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neigh(j,direc,sign,Nt)+1; DDSv(c3) = imag(a^(d-3)*Dt(j));
-                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neigh(j,direc,sign,Nt)+2; DDSv(c3) = real(a^(d-3)*Dt(j));
+                            neighb = neigh(j,direc,sign,Nt);
+                            minusDS(2*j+1) = minusDS(2*j+1) - real(a^(d-3)*Dtj*Cp(neighb+1)); %note Dt(j) = Dt(j+Nt) etc.
+                            minusDS(2*j+2) = minusDS(2*j+2) - imag(a^(d-3)*Dtj*Cp(neighb+1));
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*+1; DDSv(c3) = real(a^(d-3)*Dtj);
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neighb+2; DDSv(c3) = -imag(a^(d-3)*Dtj);
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neighb+1; DDSv(c3) = imag(a^(d-3)*Dtj);
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*neighb+2; DDSv(c3) = real(a^(d-3)*Dtj);
                         end
                     end
-                    temp0 = a^(d-1)*(1/dt(j) + 1/dt(j-1));
-                    temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2);%%%%%%%%%%%%%%% + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
-                    temp2 = siteMeasure*(2*(d-1)/a^2);%%%%%%%%%%%%%%%%%%% + (lambda/2)*(3*Cp(j+1)^2 - v^2));
+                    temp0 = a^(d-1)*(1/dtj + 1/dtjm);
+                    temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
+                    temp2 = siteMeasure*(2*(d-1)/a^2 + (lambda/2)*(3*Cp(j+1)^2 - v^2));
 
-                    minusDS(2*j+1) = real(temp1 - temp0*Cp(j+1));
-                    minusDS(2*j+2) = imag(temp1 - temp0*Cp(j+1));
+                    minusDS(2*j+1) = minusDS(2*j+1) + real(temp1 - temp0*Cp(j+1));
+                    minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = real(-temp2 + temp0);
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+2; DDSv(c3) = imag(temp2 - temp0);
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+1; DDSv(c3) = imag(-temp2 + temp0);
@@ -279,13 +281,13 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
         [delta,flag,relres] = cgs(DDS,minusDS,tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
             if flag == 1
-                disp('bicg interated maxit times but did not converge');
+                disp('cgs interated maxit times but did not converge');
             elseif flag == 2
                 disp('preconditioner M was ill-conditioned');
             elseif flag == 3
-                disp('bicg stagnated (two consecutive iterates were the same)');
+                disp('cgs stagnated (two consecutive iterates were the same)');
             elseif flag == 4
-                disp('one of the scalar quantities calculated during bicg became too small or too large to continue computing');
+                disp('one of the scalar quantities calculated during cgs became too small or too large to continue computing');
             end
         end
 
@@ -308,9 +310,15 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
     fprintf('%12g',toc,runsCount,d,N,X,real(action));
     fprintf('%12g\n',imag(action));
     
-    actionOut = fopen('functions/picAction.dat','a'); %saving action etc data and phi to file
+    actionOut = fopen('data/picAction.dat','a'); %saving action to file
     fprintf(actionOut,'%12g',toc,runsCount,d,N,X,real(action));
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
-end%closing while loop
+    t = eTVec; %saving phi to file
+    x = xVec(Nt);
+    phiOut = ['data/phi',num2str(loop),'.mat'];
+    save(phiOut,'t','x','Cp');
+    save data/phiEarly.mat t x Cp;
+    
+end%closing parameterChange loop

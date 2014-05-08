@@ -16,7 +16,7 @@ function [Xwait,Xaq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, a
             Xaq.printRun = runsCount + 1;
             disp(['action = ',num2str(action)]);
         end
-        Xwait = input('keep waiting?(1=y, 0=n) ');
+        Xwait = input('keep waiting?(1=y, 0=n)');
     else
         Xwait = 1;
         Xaq = aq;
