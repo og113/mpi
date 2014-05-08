@@ -1,27 +1,42 @@
 %function to compare minusDS outputs from different programs/runs
 %originally intended to compare c++ and matlab code
 %no arguments
-function [XmminusDS,XcminusDS,XcompareminusDS] = compareminusDS
-    global Edim;
+function [XmminusDS,XcminusDS,XminusDS] = compareminusDS
+    global Edim Nt;
     mData = load('data/minusDS.mat');
     XmminusDS = mData.minusDS;
     XmminusDS(2*Edim+1) = [];
+    Cm = vecComplex(XmminusDS,Edim);
     
     load data/cminusDS.dat;
-    for j=0:(Edim-1)
-        XcminusDS(2*j+1) = cminusDS(j+1,5);
-        XcminusDS(2*j+2) = cminusDS(j+1,6);
-    end
-    XcminusDS = XcminusDS';
+    XcminusDS = cminusDS(:,5)' + 1i*cminusDS(:,6)';
     
-    XcompareminusDS = XmminusDS - XcminusDS;
-    XcompareminusDS(XcompareminusDS<1e-10) = 0;
+    load data/minusDS.dat;
+    XminusDS = minusDS(:,3)';
     
-    subplot(1,3,1)
-    plot(XmminusDS)
-    subplot(1,3,2)
-    plot(XcminusDS)
-    subplot(1,3,3)
-    plot(XcompareminusDS)
+    x = xVec(Nt);
+    t = imag(eTVec);
+    
+    subplot(2,3,1)
+    plot3(t,x,real(XcminusDS),'x')
+    xlabel('im(t)'), ylabel('x'), zlabel('re(XcminusDS)')
+    subplot(2,3,4)
+    plot3(t,x,imag(XcminusDS),'x')
+    xlabel('im(t)'), ylabel('x'), zlabel('imag(XcminusDS)')
+    
+    subplot(2,3,2)
+    plot3(t,x,real(Cm),'x')
+    xlabel('im(t)'), ylabel('x'), zlabel('re(Cm)')
+    subplot(2,3,5)
+    plot3(t,x,imag(Cm),'x')
+    xlabel('im(t)'), ylabel('x'), zlabel('imag(Cm)')
+    
+    subplot(2,3,3)
+    plot3(t,x,real(XminusDS),'x')
+    xlabel('im(t)'), ylabel('x'), zlabel('re(C)')
+    subplot(2,3,6)
+    plot3(t,x,imag(XminusDS),'x')
+    xlabel('im(t)'), ylabel('x'), zlabel('imag(C)')
+
 end
 

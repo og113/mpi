@@ -11,7 +11,7 @@ aq.totalLoops = 1;
 aq.printChoice = 'v';
 aq.printRun = [1];
 
-%%%aq = askQuestions; %asking questions
+%%aq = askQuestions; %asking questions
 inP = aq.inputP; %just because I write this a lot
 
 global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
@@ -159,9 +159,9 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
 
         for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nt-1)
             if j~=(N-1)
-                Chi0(j+1) = (p(2*((j+2)*Nt-1)+1)+1i*p(2*((j+2)*Nt-1)+2)-p(2*((j+1)*Nt-1)+1)+1i*p(2*((j+1)*Nt-1)+2))/a;
+                Chi0(j+1) = (p(2*((j+2)*Nt-1)+1)+1i*p(2*((j+2)*Nt-1)+1)-p(2*((j+1)*Nt-1)+1)+1i*p(2*((j+1)*Nt-1)+1))/a; %%note only use real derivative - this is a fudge due to initial input
             else
-                Chi0(j+1) = (p(2*(Nt-1)+1)+1i*p(2*(Nt-1)+2)-p(2*(N*Nt-1)+1)+1i*p(2*(N*Nt-1)+2))/a;
+                Chi0(j+1) = (p(2*(Nt-1)+1)+1i*p(2*(Nt-1)+1)-p(2*(N*Nt-1)+1)+1i*p(2*(N*Nt-1)+1))/a;
             end
         end
         Chi0 = Chi0/norm(Chi0);
@@ -251,8 +251,8 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
                     temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
                     temp2 = siteMeasure*(2*(d-1)/a^2 + (lambda/2)*(3*Cp(j+1)^2 - v^2));
                     
-                    minusDS(2*j+1) = real(temp1 - temp0*Cp(j+1));
-                    minusDS(2*j+2) = imag(temp1 - temp0*Cp(j+1));
+                    minusDS(2*j+1) = minusDS(2*j+1) + real(temp1 - temp0*Cp(j+1));
+                    minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = real(-temp2 + temp0);
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+2; DDSv(c3) = imag(temp2 - temp0);
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+1; DDSv(c3) = imag(-temp2 + temp0);
@@ -299,19 +299,19 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
             end
         end
 
-        %%setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS
-        %%setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        %%setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
+        %%setup.droptol = 1e-8; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
         %%setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
         %%setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
         %%[Lo,Up] = ilu(DDS,setup);
 
-        tol = 1e-12; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
-        maxit = 20; %max number of iterations
+        tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
+        maxit = 50; %max number of iterations
         [delta,flag,relres,iter,resvec] = lsqr(DDS,minusDS,tol,maxit); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
             if flag == 1
-                disp('lsqr interated maxit times but did not converge!');
-                semilogy(0:maxit,resvec/norm(minusDS),'-o');
+                disp('linear solver interated maxit times but did not converge!');
+                semilogy(1:length(resvec),resvec/norm(minusDS),'-o');
                 xlabel('Iteration number');
                 ylabel('Relative residual');
                 k = input('find smallest k eigs: ');
@@ -323,9 +323,9 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
             elseif flag == 2
                 disp('preconditioner M was ill-conditioned!');
             elseif flag == 3
-                disp('lsqr stagnated (two consecutive iterates were the same)!');
+                disp('linear solver stagnated (two consecutive iterates were the same)!');
             elseif flag == 4
-                disp('one of the scalar quantities calculated during lsqr became too small or too large to continue computing!');
+                disp('one of the scalar quantities calculated during linear solver became too small or too large to continue computing!');
             end
         end
 
