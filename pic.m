@@ -188,7 +188,6 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
             t = intCoord(j,0,Nt);
             x = intCoord(j,1,Nt);
             dtj = dt(j);
-            dtjm = dt(j-1);
             siteMeasure = a*Dt(j); %for sites in time
             linkMeasure = a*dtj; %for links in time
             
@@ -222,6 +221,7 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = 1/b;
                     end
                 else
+                    dtjm = dt(j-1);
                     for k=0:(2*d-1)
                         sign = (-1)^k;
                         %%deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
@@ -350,9 +350,12 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
     fprintf('%12g',toc,runsCount,d,N,X,real(action));
     fprintf('%12g\n',imag(action));
     
-    actionOut = fopen('data/picAction.dat','a'); %saving action etc data and phi to file
+    actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
     fprintf(actionOut,'%12g',toc,runsCount,d,N,X,real(action));
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
+    
+    vectorsOut = ['data/picVectors',num2str(loop),'.mat']; %saving phi and minusDS to file
+    save vectorsOut Cp minusDS;
     
 end%closing while loop

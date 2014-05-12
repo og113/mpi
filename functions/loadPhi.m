@@ -1,5 +1,7 @@
 %function to load phi from a .dat file or a .mat file
 %argument is filename
+%result is a complex vector including the lagrange multiplier, if there is
+%one
 function Xphi = loadPhi(filename)
    if ~isempty(strfind(filename, '.dat'))
        inputs = load(filename);

@@ -25,7 +25,7 @@ function parameters(inputP)
     v =  mass/sqrt(lambda);
     
     %parameters specific to inputP
-    if inputP=='b' | inputP=='f' | inputP=='t'
+    if inputP=='b' || inputP=='f' || inputP=='t'
         Lt = 2*R;
 		L = 4*R;
 		a = L/(N-1);
