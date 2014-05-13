@@ -5,6 +5,8 @@
 global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
 global R X lambda mass v epsilon theta;
 
+parameters('t');
+
 syms x
 roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
 sort (roots); %roots sorted in ascending order
@@ -18,6 +20,12 @@ if isfield(data,'Cp')
 else
     disp('no vector named Cp in file');
 end
+
+%1.5 making Ntm and Mdim larger and making b smaller
+up = 10;
+b = b*(Ntm-1)/(Ntm*up-1);
+Ntm = up*Ntm;
+Mdim = up*Mdim;
 
 %2. initialize p==mphi using last point of ephi and zeros- use complex phi
 p = complex(zeros(Mdim,1));
@@ -42,8 +50,7 @@ for j=0:(N-1)
     acc(j*Ntm+1) = vel(j*Ntm+1)/dt;
 end
 
-%5. initialize velh to zeros
-velh = complex(zeros(Mdim,1));
+%5. initialize velh to zeros - for leapfrog
 
 %6. find expression for E and initialize using phi and zeros - energy
 %integrated over time slice, not energy density
@@ -106,13 +113,13 @@ plot(shortT,imag(H),'x')
 xlabel('real(t)'), ylabel('imag(H)')
 
 %12. combine phi with ephi and save combination to file
-totalPhi = complex(zeros(Tdim));
-for j=0:(Tdim-1)
-    if j<Mdim
-        totalPhi(j+1) = p(Mdim-j);
-    else
-        totalPhi(j+1) = ep(Edim-j+Mdim);
-    end
-end
+%%totalPhi = complex(zeros(Tdim));
+%%for j=0:(Tdim-1)
+%%    if j<Mdim
+%%        totalPhi(j+1) = p(Mdim-j);
+%%    else
+%%        totalPhi(j+1) = ep(Edim-j+Mdim);
+%%    end
+%%end
 
-save data/tp.mat totalPhi;
+%%save data/tp.mat totalPhi;

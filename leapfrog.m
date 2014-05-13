@@ -22,6 +22,12 @@ else
     disp('no vector named Cp in file');
 end
 
+%1.5 making Ntm and Mdim larger and making b smaller
+up = 2;
+b = b*(Ntm-1)/(Ntm*up-1);
+Ntm = up*Ntm;
+Mdim = up*Mdim;
+
 %2. initialize p==mphi using last point of ephi and zeros- use complex phi
 p = complex(zeros(Mdim));
 for j=0:(N-1)

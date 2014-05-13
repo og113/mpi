@@ -48,7 +48,7 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
     
     syms x
     roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
-    sort (roots); %roots sorted in ascending order
+    sort (roots); %roots sorted in ascending orderhttps://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
 
     if aq.perturbResponse ~='n' %assigning values to perturbations if user wants perturbations
         perturbReal = v*1e-4*rand(Edim,1);
