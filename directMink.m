@@ -22,10 +22,10 @@ else
 end
 
 %1.5 making Ntm and Mdim larger and making b smaller
-up = 40;
-b = b*(Ntm-1)/(Ntm*up-1);
-Ntm = up*Ntm;
-Mdim = up*Mdim;
+up = 16;
+b = b/up;
+Ntm = (Ntm-1)*up+1;
+Mdim = Ntm*N;
 
 %2. initialize p==mphi using last point of ephi and zeros- use complex phi
 p = complex(zeros(Mdim,1));
@@ -33,19 +33,19 @@ for j=0:(N-1)
     p(j*Ntm+1) = ep(j*Nt+1);%%roots(1);%%
 end
 
-%3. initialize vel using dS/dp=0 at zero and zeros - complex
+%3. initialize vel - defined at half steps, first step being at t=-1/2,
+%vel(t+1/2) := (p(t+1)-p(t))/dt
 vel = complex(zeros(Mdim,1));
-Dt0 = b/2*(-1+1i);
-for j=0:(N-1) %vel(1) = vel(0) + (dt/2)*a(0), with vel(0)=0
+dt = -b;
+Dt0 = dt;%%b/2*(-1+1i*up); - this is surely wrong!!
+for j=0:(N-1)
     k = j*Ntm;
-    vel(k+1) = (Dt0/a^2)*(p(neigh(k,1,1,Ntm)+1)+p(neigh(k,1,-1,Ntm)+1)-2*p(k+1)) ...
-        -(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) - epsilon*Dt0/2/v;
+    vel(k+1) = 0; %%due to boundary condition
 end
 
 %4. initialize acc using phi and expression from equation of motion and zeros-
 %complex
 acc = complex(zeros(Mdim,1));
-dt = -b;
 for j=0:(N-1)
     k = j*Ntm;
     acc(k+1) = ((Dt0/a^2)*(p(neigh(k,1,1,Ntm)+1)+p(neigh(k,1,-1,Ntm)+1)-2*p(k+1)) ...
@@ -65,13 +65,13 @@ end
 for j=1:(Ntm-1)
     for k=0:(N-1)
         l = j+k*Ntm;
-        p(l+1) = p(l) + dt*vel(l) + (dt^2/2)*acc(l);
+        vel(l+1) = vel(l) + dt*acc(l);
+        p(l+1) = p(l) + dt*vel(l+1);%
     end
     for k=0:(N-1)
         l = j+k*Ntm;
         acc(l+1) = (1/a^2)*(p(neigh(l,1,1,Ntm)+1)+p(neigh(l,1,-1,Ntm)+1)-2*p(l+1)) ...
         -(lambda/2)*p(l+1)*(p(l+1)^2-v^2) - epsilon/2/v;    
-        vel(l+1) = vel(l) + (dt/2)*(acc(l) + acc(l+1)); %evaluate both at l for agreement with dS/dp=0, one at l+1 to be a leapfrog
         H(j+1) = H(j+1) + a*vel(l+1)^2/2 + (p(neigh(l,1,1,Ntm)+1)-p(l+1))^2/a...
             + (a*lambda/8)*(p(l+1)^2-v^2) + a*epsilon*(p(l+1)-v)/2/v;
     end
@@ -113,13 +113,18 @@ plot(shortT,imag(H),'x')
 xlabel('real(t)'), ylabel('imag(H)')
 
 %12. combine phi with ephi and save combination to file
-totalPhi = complex(zeros(Tdim));
-Mdim = Mdim/up;
+totalPhi = complex(zeros(Tdim,1));
+bigNtm = Ntm;
+Ntm = (Ntm-1)/up + 1;
+Mdim = Ntm*N;
 for j=0:(Tdim-1)
-    if j<Mdim
-        totalPhi(j+1) = p((Mdim-j)*up);
+    t = intCoord(j,0,Ntm+Nt);
+    x = intCoord(j,1,Ntm+Nt);
+    if t<Ntm
+        totalPhi(j+1) = p((Ntm-1-t)*up+x*bigNtm+1);
     else
-        totalPhi(j+1) = ep(Edim-j+Mdim);
+        t = t - Ntm;
+        totalPhi(j+1) = ep((Nt-1-t)+x*Nt+1);
     end
 end
 
