@@ -1,4 +1,4 @@
-hermite%script to leapfrog the euclidean phi solution back through minkowskian
+%script to leapfrog the euclidean phi solution back through minkowskian
 %time - checks on energy conservation are made
 %input phi is taken from chosen input file
 %using the velocity rather than the position verlet
@@ -22,19 +22,28 @@ else
     disp('no vector named Cp in file');
 end
 
+%1.5 making Ntm and Mdim larger and making b smaller
+up = 40;
+b = b*(Ntm-1)/(Ntm*up-1);
+Ntm = up*Ntm;
+Mdim = up*Mdim;
+
 %2. initialize p==mphi using last point of ephi and zeros- use complex phi
-p = complex(zeros(Mdim));
+p = complex(zeros(Mdim,1));
 for j=0:(N-1)
     p(j*Ntm+1) = roots(1); %%ep(j*Nt+1);
 end
 
+%2.5 clear ep
+clear ep;
+
 %3. initialize vel using dS/dp=0 at zero and zeros - complex
-vel = complex(zeros(Mdim));
+vel = complex(zeros(Mdim,1));
 Dt0 = b/2*(-1+1i);
 for j=0:(N-1)
     k = j*Ntm;
     vel(k+1) = (Dt0/a^2)*(p(neigh(k,1,1,Ntm)+1)+p(neigh(k,1,-1,Ntm)+1)-2*p(k+1)) ...
-        +(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) + epsilon*Dt0/2/v;
+        -(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) - epsilon*Dt0/2/v;
 end
 
 %4. initialize acc using phi and expression from equation of motion and zeros-
@@ -49,7 +58,7 @@ end
 jerk = complex(zeros(Mdim,1));
 for j=0:(N-1)
     jerk(j*Ntm+1) = ((Dt0/a^2)*(vel(neigh(k,1,1,Ntm)+1)+vel(neigh(k,1,-1,Ntm)+1)-2*vel(k+1)) ...
-        +(lambda*Dt0/2)*vel(k+1)*(3*p(k+1)^2-v^2))/dt;
+        -(lambda*Dt0/2)*vel(k+1)*(3*p(k+1)^2-v^2))/dt;
 end
 
 %5. initialize pi, velp, accp and jerkp (where p stands for preliminary) to zeros
@@ -76,9 +85,9 @@ for j=1:(Ntm-1)
     for k=0:(N-1) %%%%a lot of redundant steps as only need to evaluate neighbours before evaluating acc etc
         l=j+k*Ntm;
         accp(l) = ((Dt0/a^2)*(p(neigh(l,1,1,Ntm)+1)+p(neigh(l,1,-1,Ntm)+1)-2*p(l+1)) ...
-        +(lambda*Dt0/2)*pp(l+1)*(p(l+1)^2-v^2) + epsilon*Dt0/2/v)/dt;
+        -(lambda*Dt0/2)*p(l+1)*(p(l+1)^2-v^2) - epsilon*Dt0/2/v)/dt;
         jerkp(l) = ((Dt0/a^2)*(velp(neigh(l,1,1,Ntm)+1)+velp(neigh(l,1,-1,Ntm)+1)-2*velp(l+1)) ...
-        +(lambda*Dt0/2)*velp(l+1)*(3*p(l+1)^2-v^2))/dt;
+        -(lambda*Dt0/2)*velp(l+1)*(3*p(l+1)^2-v^2))/dt;
     end
     for k=0:(N-1)
         l=j+k*Ntm;
@@ -88,15 +97,18 @@ for j=1:(Ntm-1)
     for k=0:(N-1)
         l=j+k*Ntm;
         acc(l+1) = ((Dt0/a^2)*(p(neigh(l,1,1,Ntm)+1)+p(neigh(l,1,-1,Ntm)+1)-2*p(l+1)) ...
-        +(lambda*Dt0/2)*p(l+1)*(p(l+1)^2-v^2) + epsilon*Dt0/2/v)/dt;
+        -(lambda*Dt0/2)*p(l+1)*(p(l+1)^2-v^2) - epsilon*Dt0/2/v)/dt;
         H(j+1) = H(j+1) + a*vel(l+1)^2/2 + (p(neigh(l,1,1,Ntm)+1)-p(l+1))^2/a...
             + (a*lambda/8)*(p(l+1)^2-v^2) + a*epsilon*(p(l+1)-v)/2/v;
     end
 end
 
+%7.5 clearing vectors apart from H
+%%clear p acc vel accp velp jerk jerkp;
+
 %8. print t and x vs phi
 x = xVec(Ntm);
-t = real(mTVec);
+t = real(mTVec(Ntm));
 subplot(2,4,1)
 plot3(t,x,real(p),'x')
 xlabel('real(t)'), ylabel('x'), zlabel('re(phi)')
@@ -128,15 +140,4 @@ xlabel('real(t)'), ylabel('real(H)')
 subplot(2,4,8)
 plot(shortT,imag(H),'x')
 xlabel('real(t)'), ylabel('imag(H)')
-
-%12. combine phi with ephi and save combination to file
-totalPhi = complex(zeros(Tdim));
-for j=0:(Tdim-1)
-    if j<Mdim
-        totalPhi(j+1) = p(Mdim-j);
-    else
-        totalPhi(j+1) = ep(Edim-j+Mdim);
-    end
-end
-
-save data/tp.mat totalPhi;
+%%save data/tp.mat totalPhi;

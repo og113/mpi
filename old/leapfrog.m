@@ -23,24 +23,27 @@ else
 end
 
 %1.5 making Ntm and Mdim larger and making b smaller
-up = 2;
+up = 40;
 b = b*(Ntm-1)/(Ntm*up-1);
 Ntm = up*Ntm;
 Mdim = up*Mdim;
 
 %2. initialize p==mphi using last point of ephi and zeros- use complex phi
-p = complex(zeros(Mdim));
+p = complex(zeros(Mdim,1));
 for j=0:(N-1)
     p(j*Ntm+1) = roots(1); %%ep(j*Nt+1);
 end
 
+%2.5 clearing ep
+clear ep;
+
 %3. initialize vel using dS/dp=0 at zero and zeros - complex
-vel = complex(zeros(Mdim));
+vel = complex(zeros(Mdim,1));
 Dt0 = b/2*(-1+1i);
 for j=0:(N-1)
     k = j*Ntm;
     vel(k+1) = (Dt0/a^2)*(p(neigh(k,1,1,Ntm)+1)+p(neigh(k,1,-1,Ntm)+1)-2*p(k+1)) ...
-        +(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) + epsilon*Dt0/2/v;
+        -(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) - epsilon*Dt0/2/v;
 end
 
 %4. initialize acc using phi and expression from equation of motion and zeros-
@@ -72,16 +75,18 @@ for j=1:(Ntm-1)
     for k=0:(N-1)
         l=j+k*Ntm;
         acc(l+1) = (1/a^2)*(p(neigh(l,1,1,Ntm)+1)+p(neigh(l,1,-1,Ntm)+1)-2*p(l+1)) ...
-        +(lambda/2)*p(l+1)*(p(l+1)^2-v^2) + epsilon/2/v;
+        -(lambda/2)*p(l+1)*(p(l+1)^2-v^2) - epsilon/2/v;
         vel(l+1) = vel(l) + (dt/2)*acc(l+1);
         H(j+1) = H(j+1) + a*vel(l+1)^2/2 + (p(neigh(l,1,1,Ntm)+1)-p(l+1))^2/a...
             + (a*lambda/8)*(p(l+1)^2-v^2) + a*epsilon*(p(l+1)-v)/2/v;
     end
 end
 
+%%clear p vel acc;
+
 %8. print t and x vs phi
 x = xVec(Ntm);
-t = real(mTVec);
+t = real(mTVec(Ntm));
 subplot(2,4,1)
 plot3(t,x,real(p),'x')
 xlabel('real(t)'), ylabel('x'), zlabel('re(phi)')

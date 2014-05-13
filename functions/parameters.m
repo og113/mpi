@@ -9,7 +9,7 @@ function parameters(inputP)
     d = 2;
     N = 64;
     NtonN = 1;
-    NtmonNt = 1;
+    NtmonNt = 2;
     R = 100;
     mass = 1;
     epsilon = 1e-4;

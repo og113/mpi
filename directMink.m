@@ -22,7 +22,7 @@ else
 end
 
 %1.5 making Ntm and Mdim larger and making b smaller
-up = 10;
+up = 40;
 b = b*(Ntm-1)/(Ntm*up-1);
 Ntm = up*Ntm;
 Mdim = up*Mdim;
@@ -30,16 +30,16 @@ Mdim = up*Mdim;
 %2. initialize p==mphi using last point of ephi and zeros- use complex phi
 p = complex(zeros(Mdim,1));
 for j=0:(N-1)
-    p(j*Ntm+1) = roots(1);%%ep(j*Nt+1);
+    p(j*Ntm+1) = ep(j*Nt+1);%%roots(1);%%
 end
 
 %3. initialize vel using dS/dp=0 at zero and zeros - complex
 vel = complex(zeros(Mdim,1));
 Dt0 = b/2*(-1+1i);
-for j=0:(N-1)
+for j=0:(N-1) %vel(1) = vel(0) + (dt/2)*a(0), with vel(0)=0
     k = j*Ntm;
     vel(k+1) = (Dt0/a^2)*(p(neigh(k,1,1,Ntm)+1)+p(neigh(k,1,-1,Ntm)+1)-2*p(k+1)) ...
-        +(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) + epsilon*Dt0/2/v;
+        -(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) - epsilon*Dt0/2/v;
 end
 
 %4. initialize acc using phi and expression from equation of motion and zeros-
@@ -47,10 +47,10 @@ end
 acc = complex(zeros(Mdim,1));
 dt = -b;
 for j=0:(N-1)
-    acc(j*Ntm+1) = vel(j*Ntm+1)/dt;
+    k = j*Ntm;
+    acc(k+1) = ((Dt0/a^2)*(p(neigh(k,1,1,Ntm)+1)+p(neigh(k,1,-1,Ntm)+1)-2*p(k+1)) ...
+        -(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) - epsilon*Dt0/2/v)/dt;
 end
-
-%5. initialize velh to zeros - for leapfrog
 
 %6. find expression for E and initialize using phi and zeros - energy
 %integrated over time slice, not energy density
@@ -65,13 +65,13 @@ end
 for j=1:(Ntm-1)
     for k=0:(N-1)
         l = j+k*Ntm;
-        p(l+1) = dt*vel(l) + p(l);
+        p(l+1) = p(l) + dt*vel(l) + (dt^2/2)*acc(l);
     end
     for k=0:(N-1)
         l = j+k*Ntm;
         acc(l+1) = (1/a^2)*(p(neigh(l,1,1,Ntm)+1)+p(neigh(l,1,-1,Ntm)+1)-2*p(l+1)) ...
-        +(lambda/2)*p(l+1)*(p(l+1)^2-v^2) + epsilon/2/v;    
-        vel(l+1) = vel(l) + dt*acc(l+1);
+        -(lambda/2)*p(l+1)*(p(l+1)^2-v^2) - epsilon/2/v;    
+        vel(l+1) = vel(l) + (dt/2)*(acc(l) + acc(l+1)); %evaluate both at l for agreement with dS/dp=0, one at l+1 to be a leapfrog
         H(j+1) = H(j+1) + a*vel(l+1)^2/2 + (p(neigh(l,1,1,Ntm)+1)-p(l+1))^2/a...
             + (a*lambda/8)*(p(l+1)^2-v^2) + a*epsilon*(p(l+1)-v)/2/v;
     end
@@ -79,7 +79,7 @@ end
 
 %8. print t and x vs phi
 x = xVec(Ntm);
-t = real(mTVec);
+t = real(mTVec(Ntm));
 subplot(2,4,1)
 plot3(t,x,real(p),'x')
 xlabel('real(t)'), ylabel('x'), zlabel('re(phi)')
@@ -113,13 +113,14 @@ plot(shortT,imag(H),'x')
 xlabel('real(t)'), ylabel('imag(H)')
 
 %12. combine phi with ephi and save combination to file
-%%totalPhi = complex(zeros(Tdim));
-%%for j=0:(Tdim-1)
-%%    if j<Mdim
-%%        totalPhi(j+1) = p(Mdim-j);
-%%    else
-%%        totalPhi(j+1) = ep(Edim-j+Mdim);
-%%    end
-%%end
+totalPhi = complex(zeros(Tdim));
+Mdim = Mdim/up;
+for j=0:(Tdim-1)
+    if j<Mdim
+        totalPhi(j+1) = p((Mdim-j)*up);
+    else
+        totalPhi(j+1) = ep(Edim-j+Mdim);
+    end
+end
 
-%%save data/tp.mat totalPhi;
+save data/tp.mat totalPhi;
