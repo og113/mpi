@@ -5,7 +5,7 @@
 global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
 global R X lambda mass v epsilon theta;
 
-parameters('t');
+parameters('p');
 
 syms x
 roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
@@ -13,7 +13,7 @@ sort (roots); %roots sorted in ascending order
 
 %1. get ep==ephi from file
 %%filename = input('input filename: ','s');
-filename = 'data/phiEarly.mat';
+filename = 'data/vectorsOut.mat';
 data = load(filename);
 if isfield(data,'Cp')
     ep = data.Cp;
@@ -36,8 +36,8 @@ end
 %3. initialize vel - defined at half steps, first step being at t=-1/2,
 %vel(t+1/2) := (p(t+1)-p(t))/dt
 vel = complex(zeros(Mdim,1));
-dt = -b;
-Dt0 = dt;%%b/2*(-1+1i*up); - this is surely wrong!!
+dtau = -b;
+Dt0 = dtau;%%b/2*(-1+1i*up); - this is surely wrong!!
 for j=0:(N-1)
     k = j*Ntm;
     vel(k+1) = 0; %%due to boundary condition
@@ -49,7 +49,7 @@ acc = complex(zeros(Mdim,1));
 for j=0:(N-1)
     k = j*Ntm;
     acc(k+1) = ((Dt0/a^2)*(p(neigh(k,1,1,Ntm)+1)+p(neigh(k,1,-1,Ntm)+1)-2*p(k+1)) ...
-        -(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) - epsilon*Dt0/2/v)/dt;
+        -(lambda*Dt0/2)*p(k+1)*(p(k+1)^2-v^2) - epsilon*Dt0/2/v)/dtau;
 end
 
 %6. find expression for E and initialize using phi and zeros - energy
@@ -65,8 +65,8 @@ end
 for j=1:(Ntm-1)
     for k=0:(N-1)
         l = j+k*Ntm;
-        vel(l+1) = vel(l) + dt*acc(l);
-        p(l+1) = p(l) + dt*vel(l+1);%
+        vel(l+1) = vel(l) + dtau*acc(l);
+        p(l+1) = p(l) + dtau*vel(l+1);%
     end
     for k=0:(N-1)
         l = j+k*Ntm;
@@ -104,7 +104,7 @@ plot3(t,x,imag(acc),'x')
 xlabel('real(t)'), ylabel('x'), zlabel('imag(acc)')
 
 %11. print t vs E
-shortT = 0:dt:(-Ltm);
+shortT = 0:dtau:(-Ltm);
 subplot(2,4,4)
 plot(shortT,real(H),'x')
 xlabel('real(t)'), ylabel('real(H)')
@@ -117,6 +117,7 @@ totalPhi = complex(zeros(Tdim,1));
 bigNtm = Ntm;
 Ntm = (Ntm-1)/up + 1;
 Mdim = Ntm*N;
+b = b*up;
 for j=0:(Tdim-1)
     t = intCoord(j,0,Ntm+Nt);
     x = intCoord(j,1,Ntm+Nt);

@@ -1,0 +1,288 @@
+%script to find the vacuum bubble 'b' using real phi everywhere, and
+%dropping the complex parts
+%the importance of this is to find the negative eigenvector and eigenvalue
+%note that the zero mode constraint means that this doesn't work for 't' or
+%'f'
+
+%asking questions
+inP = input('input bubble, true or false vacuum? (b,t,f) ','s');
+loopResponse = input('loop through a parameter? (y/n): ','s');
+if loopResponse == 'y'
+    parameterChoice = input('which parameter?: N, R, mass, epsilon, L_t, X, lambda: ' ,'s');
+    minValue = input('choose min value: ');
+    maxValue = input('choose max value: ');
+    totalLoops = input('choose number of loops: ');
+else
+    totalLoops = 1;
+end
+printChoice = input('print DDS matrix or -DS vector or the action (earlier) or phi or none? (m/v/a/p/n): ' ,'s');
+if printChoice ~= 'n'
+    printRun = input('choose run to print: ');
+else
+   printRun = -1; 
+end
+
+global d N Nt NtonN L Lt a b Edim; %defining global variables
+global R X lambda mass v epsilon;
+parameters(inP); %assigning global variables according to parameters.m
+
+tic; %starting the clock
+
+for loop=1:totalLoops %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
+    if loopResponse == 'y' && parameterChoice=='N'
+        N = minValue + floor(loop*(maxValue - minValue)/(totalLoops-1));
+        changeParameters(N,'N',inP);
+    elseif loopResponse == 'y'
+        loopParameter = minValue + loop*(maxValue - minValue)/(totalLoops-1);
+        changeParameters (loopParameter,parameterChoice, inP);
+    end
+    
+    S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
+    twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
+    alpha = 15; %determines range over which tanh(x) is used
+    action = 2;
+    
+    actionLast = 1; %defining some quantities to stop Newton-Raphson loop when action stops varying
+    runsCount = 0;
+    runsTest = 1;
+    closeness = 1e-4;
+    minRuns = 6;
+    
+    p = zeros(Edim+1,1); %phi, in the euclidean domain
+    pNeg = zeros(2*Edim,1); %negative eigenvector
+    pZero = zeros(2*Edim,1); %zero eigenvector
+    
+    syms x
+    roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
+    sort (roots); %roots sorted in ascending orderhttps://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
+    
+    for j=0:(Edim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
+        rhoSqrd = reCoord(j,0)^2;
+        for k=1:(d-1)
+            rhoSqrd = rhoSqrd + reCoord(j,k)^2;
+        end
+        rho = sqrt(rhoSqrd);
+        if R<alpha/mass
+            disp(['X = R*mass is too small. not possible to give thinwall input. it should be less that ',num2str(alpha)]);
+        else
+            if inP =='t'
+                p(j+1) = roots(1);
+            elseif inP == 'f'
+                p(j+1) = roots(3);
+            elseif inP == 'b'
+                if rho<(R-alpha/mass)
+                    p(j+1) = roots(1);
+                elseif rho>(R+alpha/mass)
+                    p(j+1) = roots(3);
+                else
+                    p(j+1) = v*tanh(mass*(rho-R)/2);
+                    %%pNeg(2*j+1) = v/cosh(mass*(rho-R)/2)^2;
+                end
+            end
+        end
+    end
+    
+    p(Edim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
+    
+    %%if inP == 'b' || inP == 'p' %fixing norm of pNeg
+        %%pNeg = pNeg/norm(pNeg);
+    %%end
+        
+    Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
+    while (runsTest > closeness || runsCount<minRuns) && Xwait%beginning newton-raphson loop
+        runsTest = abs(action - actionLast)/abs(actionLast); %note this won't work if action goes to zero
+        runsCount = runsCount + 1;
+        actionLast = action;
+        
+        minusDS = zeros(Edim+1,1); %-dS/d(p)
+        Chi0 = zeros(N,1); %to fix zero mode, alla kuznetsov, dl[7], though not quite
+
+        for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nt-1)
+            if j~=(N-1) && j~=0
+                Chi0(j+1) = (p((j+2)*Nt)-p(j*Nt))/2/a; %shouldn't be forward or backward derivative as this will move boundary phi in a direction.
+            elseif j==(N-1)
+                Chi0(j+1) = (p(Nt)-p((N-1)*Nt))/2/a;
+            else
+                Chi0(j+1) = (p(2*Nt)-p(N*Nt))/2/a;
+            end
+        end
+        if norm(Chi0)~=0
+            Chi0 = Chi0/norm(Chi0);
+        end
+        
+        nonz = 5*(Edim-2) + 5*N; %number of nonzero elements of DDS
+        DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
+        DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
+        DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
+        
+        kinetic = 0; %initializing to zero
+        potL = 0;
+        potE = 0;
+        clear c3;
+        
+        for j=0:(Edim-1)
+            t = intCoord(j,0,Nt);
+            x = intCoord(j,1,Nt);
+            siteMeasure = a*rDt(j); %for sites in time
+            linkMeasure = -a*b; %for links in time
+            dtj = rdt(j);
+            
+            potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
+            potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
+            if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
+                kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+            elseif x==(N-1) %avoinding using neigh and modulo as its slow
+                kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+            end
+            if t==(Nt-1)
+                if inP=='b' %boundary conditions
+                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1/b; %zero time derivative
+                    DDSm(c3) = j+1; DDSn(c3) = j; DDSv(c3) = 1/b;
+                elseif inP=='t' || inP=='f'
+                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1; %zero change at boundary
+                end
+                DDSm(c3) = j+1; DDSn(c3) = Edim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
+                minusDS(j+1) = -a*p(Edim+1)*Chi0(x+1); %%%%%%%%%%%%%%%%%%
+            else
+                kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
+                if t==0
+                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1; %zero change at boundary
+                else
+                    dtjm = rdt(j-1);
+                    for k=0:(2*d-1)
+                        sign = (-1)^k;
+                        %%deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
+                        direc = floor(k/2);
+                        if direc == 0
+                            dtd = dtj;
+                            if sign==-1
+                                dtd = dtjm; 
+                            end
+                            minusDS(j+1) = minusDS(j+1) + a*p(j+sign+1)/dtd;
+                            DDSm(c3) = j+1; DDSn(c3) = (j+sign)+1; DDSv(c3) = -a/dtd;
+                        else
+                            neighb = neigh(j,direc,sign,Nt);
+                            minusDS(j+1) = minusDS(j+1) + siteMeasure*p(neighb+1)/a^2; %note Dt(j) = Dt(j+Nt) etc.
+                            DDSm(c3) = j+1; DDSn(c3) = neighb+1; DDSv(c3) = -siteMeasure/a^2;
+                        end
+                    end                    
+                    minusDS(j+1) = minusDS(j+1) - siteMeasure*(2*(d-1)/a^2*p(j+1)...
+                                    + (lambda/2)*p(j+1)*(p(j+1)^2-v^2) + epsilon/2/v) - 2*a*p(j+1)/dtj;
+                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = siteMeasure*( 2*((d-1)/a^2 + 1/dtj^2) + (lambda/2)*(3*p(j+1)^2-v^2) );
+                end
+            end
+        end
+        for j=0:(N-1) %adding last row, with lagrange multiplier terms
+            minusDS(Edim+1) = minusDS(Edim+1) - a*Chi0(j+1)*p((j+1)*Nt);        
+            DDSm(c3) = Edim+1; DDSn(c3) = (j+1)*Nt; DDSv(c3) = a*Chi0(j+1); %at t=Nt-1                        
+        end
+        clear c3; %returning persistent output of c3 to 1
+        kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
+        action = 1i*(kinetic + potL + potE);
+        DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
+        DDSn(DDSv==0) = [];
+        DDSv(DDSv==0) = [];
+        DDS = sparse(DDSm,DDSn,DDSv,Edim+1,Edim+1);
+
+        if printChoice~='n' && runsCount == printRun %printing early if asked for
+            if printChoice == 'a'
+                disp(['kinetic = ',num2str(kinetic)]);
+                disp(['lambda potential = ',num2str(potL)]);
+                disp(['epsilon potential = ',num2str(potE)]);
+                disp(['action = ',num2str(action)]);
+            elseif printChoice == 'p'
+                save data/bubbleEarly.mat p;
+                disp(['printed phi in data/bubbleEarly.mat on run ',num2str(runsCount)]);
+            elseif printChoice == 'v'
+                save data/minusDS.mat minusDS;
+                disp(['printed minusDS in data/minusDS.mat on run ',num2str(runsCount)]);
+            elseif printChoice == 'm'
+                spy(DDS);
+                pause(5);
+                save data/DDS.mat DDSm DDSn DDSv;
+                disp(['printed DDS in data/DDS.mat on run ',num2str(runsCount)]);
+            else
+                disp('early print error');
+            end
+        end
+        
+        DDS = -DDS;
+        minusDS = -minusDS;
+
+        %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        
+        setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
+        setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
+        setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
+        [Lo,Up] = ilu(DDS,setup);%[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+
+        tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
+        maxit = 50; %max number of iterations
+        delta = zeros(Edim+1);
+        %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        [delta,flag,relres,iter,resvec] = lsqr(DDS,minusDS,tol,maxit,Lo,Up);
+        if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
+            if flag == 1
+                disp('linear solver interated maxit times but did not converge!');
+                semilogy(1:length(resvec),resvec/norm(minusDS),'-o');
+                xlabel('Iteration number');
+                ylabel('Relative residual');
+                k = input('find smallest k eigs: ');
+                kEigs = eigs(DDS,k,1e-6); %1e-6 is the region around which eigenvalues will be found
+                disp(kEigs);
+                disp('press any key to break and resume');
+                pause;
+                break;
+            elseif flag == 2
+                disp('preconditioner M was ill-conditioned!');
+            elseif flag == 3
+                disp('linear solver stagnated (two consecutive iterates were the same)!');
+            elseif flag == 4
+                disp('one of the scalar quantities calculated during linear solver became too small or too large to continue computing!');
+            end
+        end
+
+        %p = p + delta(orderCol)'; %p -> p'
+        p = p + delta; %p -> p'
+
+        %pNeg and pZer plus log(det(DDS)) stuff
+
+        stopTime = toc;
+        
+        if runsCount > 1000 %convergence questions
+            disp('over 1000 runs without convergence - stopping n-r loop');
+            wait = 0;
+        elseif stopTime > 600
+            disp(['time greater than ',num2str(stopTime),', number of n-r loops: ',num2str(runsCount) ]);
+            printWait = input('print phi and action on next loop? (y/n) ','s');
+            if printWait == 'y'
+                printChoice = 'p';
+                printRun = runsCount + 1;
+                disp(['action = ',num2str(action)]);
+            end
+            wait = input('keep waiting?(1=y, 0=n) ');
+        else
+            wait = 1;
+        end
+        
+    end %closing newton-raphson loop
+
+    %propagating solution back in minkowskian time
+    %checking that converged
+    
+    if loop==1 %printing to terminal
+        fprintf('%12s','time', 'runs','d','N','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('\n');
+    end
+    fprintf('%12g',toc,runsCount,d,N,X,real(action));
+    fprintf('%12g\n',imag(action));
+    
+    actionOut = fopen('data/bubbleAction.dat','a'); %saving action etc to file
+    fprintf(actionOut,'%12g',toc,runsCount,d,N,X,real(action));
+    fprintf(actionOut,'%12g\n',imag(action));
+    fclose(actionOut);
+    
+    save( ['data/bubbleVectors',num2str(loop),'.mat'], 'p', 'minusDS');%saving phi and minusDS to file
+    
+end%closing while loop

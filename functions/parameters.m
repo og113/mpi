@@ -32,9 +32,9 @@ function parameters(inputP)
 		b = Lt/(Nt-1);
         Ltm = (Ntm-1)*b;
     elseif inputP=='p'
-        Lt = 1.2*R;
-        theta = asin(Lt/2/R);
-        L = 1.5*Lt*tan(theta);
+        Lt = 1.2*R/2;
+        theta = asin(Lt/R);
+        L = 3*Lt*tan(theta);
         a = L/(N-1);
 		b = Lt/(Nt-1);
         Ltm = (Ntm-1)*b;

@@ -195,7 +195,7 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
             potE = potE - siteMeasure*epsilon*(Cp(j+1)-v)/v/2;
             if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
                 kinetic = kinetic - siteMeasure*(Cp(j+Nt+1)-Cp(j+1))^2/a^2/2;
-            elseif x==(N-1) %avoinding using neigh and modulo as its slow
+            elseif x~=(N-1) %avoinding using neigh and modulo as its slow
                 kinetic = kinetic - siteMeasure*(Cp(j+1-Nt*(N-1))-Cp(j+1))^2/a^2/2;
             end
             if t==(Nt-1)
@@ -260,7 +260,7 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
                 end
             end
         end
-        for j=0:(N-1) %adding last row, with lagrange multiplier terms
+        for j=0:(N-1) %adding last two rows, with lagrange multiplier terms
             minusDS(2*Edim+1) = minusDS(2*Edim+1) - real(a*b*Chi0(j+1)*Cp((j+1)*Nt));
             
             DDSm(c3) = 2*Edim+1; DDSn(c3) = 2*((j+1)*Nt-1)+1; DDSv(c3) = real(a*b*Chi0(j+1)); %at t=Nt-1
@@ -356,6 +356,6 @@ for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if an
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
-    save( ['data/picVectors',num2str(loop),'.mat'], 'Cp', 'minusDS');%saving phi and minusDS to file
+    save( ['/data/picVectors',num2str(loop),'.mat'], Cp, minusDS);%saving phi and minusDS to file
     
 end%closing while loop
