@@ -3,7 +3,7 @@
 %where inputP is the input phi i.e. bubble, periodic instanton etc.
 %NB - has not been checked for consistency.
 function changeParameters(newParameter, parameterName, inputP)
-    global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
+    global d N Nt Ntm NT NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
     global R X lambda mass v epsilon theta;
     if parameterName == 'mass'
         mass = newParameter;
@@ -22,7 +22,7 @@ function changeParameters(newParameter, parameterName, inputP)
         mass = X/R;
         lambda = 2*(d-1)*mass^3/epsilon/R/3;
         v =  mass/sqrt(lambda);
-    elseif inputP == 'b' | inputP == 't' | inputP =='f' %specific changes to be made for the spherical vacuum bubble or pure vacuum
+    elseif inputP == 'b' || inputP == 't' || inputP =='f' %specific changes to be made for the spherical vacuum bubble or pure vacuum
         Lt = 2*R;
 		L = 4*R;
 		a = L/(N-1);
@@ -32,6 +32,7 @@ function changeParameters(newParameter, parameterName, inputP)
             N = newParameter;
 			Nt = floor(N*NtonN);
             Ntm = floor(Nt*NtmonNt);
+            NT = N + Ntm;
 			a = L/(N-1);
 			b = Lt/(Nt-1);
             Ltm = (Ntm-1)*b;
@@ -65,9 +66,9 @@ function changeParameters(newParameter, parameterName, inputP)
             Ltm = b*(Ntm-1);
         end
     elseif inputP == 'p' %specific changes to be made for the periodic instanton
-        Lt = 1.2*R; %Lt = T/2, where T is the period of the periodic instanton
-        theta = asin(Lt/2/R);
-        L = 1.5*Lt*tan(theta); %Lt*tan(theta) is thin-wall analytic width of periodic instanton bubble
+        Lt = 1.2*R/2; %Lt = T/2, where T is the period of the periodic instanton
+        theta = asin(Lt/R);
+        L = 3*Lt*tan(theta); %Lt*tan(theta) is thin-wall analytic width of periodic instanton bubble
         a = L/(N-1);
 		b = Lt/(Nt-1);
         Ltm = (Ntm-1)*b;
@@ -75,6 +76,7 @@ function changeParameters(newParameter, parameterName, inputP)
             N = newParameter;
             Nt = floor(N*NtonN);
             Ntm = floor(Nt*NtmonNt);
+            NT = Nt + Ntm;
             a = L/(N-1);
             b = Lt/(Nt-1);
             Ltm = b*(Ntm-1);
@@ -83,9 +85,9 @@ function changeParameters(newParameter, parameterName, inputP)
             Tdim = Edim + Mdim;
         elseif parameterName == 'R'
             R = newParameter;
-            Lt = 1.2*R;
-            theta = asin(Lt/2/R);
-            L = 1.5*Lt*tan(theta);
+            Lt = 1.2*R/2;
+            theta = asin(Lt/R);
+            L = 3*Lt*tan(theta);
             a = L/(N-1);
             b = Lt/(Nt-1);
             Ltm = (Ntm-1)*b;
@@ -94,9 +96,9 @@ function changeParameters(newParameter, parameterName, inputP)
 			v =  mass/sqrt(lambda);
         elseif parameterName == 'Lt'
             Lt = newParameter;
-            R = Lt/1.2;
-            theta = asin(Lt/2/R);
-            L = 1.5*Lt*tan(theta);
+            R = 2*Lt/1.2;
+            theta = asin(Lt/R);
+            L = 3*Lt*tan(theta);
             X = mass*R;
             lambda = 2*(d-1)*mass^3/epsilon/R/3.0;
 			v =  mass/sqrt(lambda);
@@ -109,9 +111,9 @@ function changeParameters(newParameter, parameterName, inputP)
             R = 2*(d-1)*mass^3/epsilon/lambda/3;
             X = mass*R;
             v =  mass/sqrt(lambda);
-            Lt = 1.2*R;
-            theta = asin(Lt/2/R);
-            L = 1.5*Lt*tan(theta);
+            Lt = 1.2*R/2;
+            theta = asin(Lt/R);
+            L = 3*Lt*tan(theta);
             a = L/(N-1);
             b = Lt/(Nt-1);
             Ltm = b*(Ntm-1);
