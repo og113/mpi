@@ -8,7 +8,7 @@ function changeParameters(newParameter, parameterName, inputP)
     if parameterName == 'mass'
         mass = newParameter;
         X = mass*R;
-        lambda = 2*(d-1)*mass^3/epsilon/R/3;
+        epsilon = 2*(d-1)*mass^3/lambda/R/3;
         v =  mass/sqrt(lambda);
     elseif parameterName == 'epsilon'
         epsilon = newParameter;
@@ -20,7 +20,7 @@ function changeParameters(newParameter, parameterName, inputP)
     elseif parameterName == 'X'
         X = newParameter;
         mass = X/R;
-        lambda = 2*(d-1)*mass^3/epsilon/R/3;
+        epsilon = 2*(d-1)*mass^3/lambda/R/3;
         v =  mass/sqrt(lambda);
     elseif inputP == 'b' || inputP == 't' || inputP =='f' %specific changes to be made for the spherical vacuum bubble or pure vacuum
         Lt = 2*R;
@@ -44,7 +44,7 @@ function changeParameters(newParameter, parameterName, inputP)
 			L = 4*R;
 			Lt = 2*R;
 			X = mass*R;
-			lambda = 2*(d-1)*mass^3/epsilon/R/3.0;
+			epsilon = 2*(d-1)*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
 			a = L/(N-1);
 			b = Lt/(Nt-1);
@@ -92,7 +92,7 @@ function changeParameters(newParameter, parameterName, inputP)
             b = Lt/(Nt-1);
             Ltm = (Ntm-1)*b;
             X = mass*R;
-			lambda = 2*(d-1)*mass^3/epsilon/R/3.0;
+			epsilon = 2*(d-1)*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
         elseif parameterName == 'Lt'
             Lt = newParameter;
@@ -100,7 +100,7 @@ function changeParameters(newParameter, parameterName, inputP)
             theta = asin(Lt/R);
             L = 3*Lt*tan(theta);
             X = mass*R;
-            lambda = 2*(d-1)*mass^3/epsilon/R/3.0;
+            epsilon = 2*(d-1)*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
             a = L/(N-1);
             b = Lt/(Nt-1);

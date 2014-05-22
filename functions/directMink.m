@@ -13,7 +13,7 @@ sort (roots); %roots sorted in ascending order
 
 %1. get ep==ephi from file
 %%filename = input('input filename: ','s');
-data = load('data/picOut4.mat');
+data = load('data/picOut0.mat');
 if isfield(data,'Cp')
     ep = data.Cp;
 else

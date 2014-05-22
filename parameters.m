@@ -3,16 +3,16 @@
 %argument is inputP
 function parameters(inputP)
     global d N Nt Ntm NT NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
-    global R X lambda mass v epsilon theta;
+    global R X lambda mass v epsilon angle;
     
     %main global parameters
     d = 2;
     N = 64;
     NtonN = 1;
     NtmonNt = 2;
-    R = 100;
+    R = 1e2;
     mass = 1;
-    epsilon = 1e-4;
+    lambda = 1e-2;
     
     %derived global parameters
     Nt = NtonN*N;
@@ -22,7 +22,7 @@ function parameters(inputP)
     Mdim = N^(d-1)*Ntm;
     Tdim = Edim + Mdim;
     X = mass*R;
-    lambda = 2*(d-1)*mass^3/epsilon/R/3;
+    epsilon = 2*(d-1)*mass^3/lambda/R/3;
     v =  mass/sqrt(lambda);
     
     %parameters specific to inputP
@@ -34,8 +34,8 @@ function parameters(inputP)
         Ltm = (Ntm-1)*b;
     elseif inputP=='p'
         Lt = 1.2*R/2;
-        theta = asin(Lt/R);
-        L = 3*Lt*tan(theta);
+        angle = asin(Lt/R);
+        L = 3*Lt*tan(angle);
         a = L/(N-1);
 		b = Lt/(Nt-1);
         Ltm = (Ntm-1)*b;

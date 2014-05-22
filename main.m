@@ -1,39 +1,37 @@
-%script to solve boundary value problem with non-zero T and theta. input is
-%the periodic instanton and then steps increasing theta or T.
-
-fileNo = input('which data/picOut#.mat file to load? (#) ');
-data = load(['data/picOut',num2str(fileNo),'.mat']);
-
-data.DDS = []; data.minusDS = []; data.Cp = []; %freeing some memory
-
-disp(['Lt = T/2 = ', num2str(data.Lt));
-disp('theta = 0');
-maxTheta = input('input final value of theta');
-%%maxLt = input('and input final value of Lt');
-totalLoops = input('and number of steps to get there ');
+%script to solve boundary value problem with non-zero T and angle. input is
+%the periodic instanton and then steps increasing angle or T.
 
 global d N Nt Ntm NT NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
-global R X lambda mass v epsilon theta;
+global R X lambda mass v epsilon angle theta;
 
-%%%write new parametersM.m function which takes in data and spits out the
-%%%rest of the parameters according to those in data
-parameters('p'); %assigning global variables according to parameters.m
+fileNo = input('which data/picOut#.mat file to load? (#) '); %loading periodic instanton
+data = load(['data/picOut',num2str(fileNo),'.mat']);
+data.DDS = []; data.minusDS = []; data.Cp = []; %freeing some memory
+
+disp(['Lt = T/2 = ', num2str(data.Lt)); %asking input questions
+disp('angle = 0');
+maxTheta = input('input final value of angle (input 0 for no steps) ');
+%%maxLt = input('and input final value of Lt');
+totalLoops = 1;
+if maxTheta~=0
+    totalLoops = input('and number of steps to get there ');
+end
+
+parametersMain(data); %assigning global variables according to data and parametersMain.m
+
+p = data.totalPhi; data.totalPhi = []; %assigning phi from pic.m output, and freeing up memory
 
 tic; %starting the clock
 
-for loop=1:totalLoops %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
-    if aq.loopResponse == 'y' && aq.parameterChoice=='N'
-        N = aq.minValue + floor(loop*(aq.maxValue - aq.minValue)/(aq.totalLoops-1));
-        changeParameters(N,'N',inP);
-    elseif aq.loopResponse == 'y'
-        loopParameter = aq.minValue + loop*(aq.maxValue - aq.minValue)/(aq.totalLoops-1);
-        changeParameters (loopParameter,aq.parameterChoice, inP);
+for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
+    if totalLoops>1
+        theta = theta + loop*maxTheta/(totalLoops - 1);
     end
     
-    S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
-    twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
-    alpha = 15; %determines range over which tanh(x) is used
+    alpha = 20; %determines range over which tanh(x) is used
     action = complex(2);
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
@@ -41,112 +39,32 @@ for loop=1:totalLoops %starting parameter loop, note: answ.totalLoops=1 if answ.
     closeness = 1e-4;
     minRuns = 6;
     
-    p = zeros(2*Tdim+1,1); %phi, in the euclidean domain
-    perturbReal = zeros(Tdim,1); %perturbations
-    perturbImag = zeros(Tdim,1);
     %%pNeg = zeros(2*Tdim,1); %negative eigenvector
     %%pZero = zeros(2*Tdim,1); %zero eigenvector
     
     syms x
     roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
-    sort (roots); %roots sorted in ascending orderhttps://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
+    sort (roots); %roots sorted in ascending order
 
-    if aq.perturbResponse ~='n' %assigning values to perturbations if user wants perturbations
-        perturbReal = v*1e-4*rand(Tdim,1);
-        perturbImag = v*1e-4*rand(Tdim,1);
-        for j=1:(d-1)
-            for k=0:(N-1)
-                if inP == 't' || inP =='f' %pure vacua
-                    perturbReal(k*NT*N^(j-1)+1) = 0; %zero perturbation at both time boundaries
-                    perturbReal((k+1)*NT*N^(j-1)) = 0;
-                    perturbImag(k*NT*N^(j-1)+1) = 0;
-                    perturbImag((k+1)*NT*N^(j-1)) = 0;
-                elseif inP == 'b' %bubble
-                    perturbReal(k*NT*N^(j-1)+1) = 0; %zero perturbation at initial time
-                    perturbReal((k+1)*NT*N^(j-1)) = perturbReal((k+1)*NT*N^(j-1)-1); %zero derivative at final time
-                    perturbImag(k*NT*N^(j-1)+1) = 0;
-                    perturbImag((k+1)*NT*N^(j-1)) = 0;
-                elseif inP == 'p' %periodic instanton
-                    perturbReal(k*NT*N^(j-1)+1) = perturbReal(k*NT*N^(j-1)+2); %zero time derivative at final time
-                    perturbReal((k+1)*NT*N^(j-1)) = 0; %zero at first two time slices
-                    perturbReal((k+1)*NT*N^(j-1)-1) = 0;
-                    perturbImag(k*NT*N^(j-1)+1) = 0;
-                    perturbImag((k+1)*NT*N^(j-1)) = 0;
-                end
-            end
+    if loop==0
+        for j=0:(N-1) %fixing input periodic instanton to obey boundary conditions
+            p(2*(j*NT+1)+1) = (p(2*j*NT+1) + p(2*(j*NT+1)+1))/2; %d(re(p))/dt=0 at initial time
+            p(2*j*NT+1) = (p(2*j*NT+1) + p(2*(j*NT+1)+1))/2; %d(re(p))/dt=0 at initial time
+            p(2*j*NT+2) = 0; %im(p)=0 at initial time
+            p(2*((j+1)*NT-1)+1) = (p(2*((j+1)*NT-1)+1) + p(2*((j+1)*NT-2)+1))/2; %d(re(p))/dt=0 at final time
+            p(2*((j+1)*NT-2)+1) = (p(2*((j+1)*NT-1)+1) + p(2*((j+1)*NT-2)+1))/2; %d(re(p))/dt=0 at final time
+            p(2*((j+1)*NT-1)+2) = 0; %im(p)=0 at final time
+        end
+    else
+        for j=0:(N-1) %changing phi to obey boundary conditions with new theta
+            p(2*(j*NT+1)+1) = (p(2*j*NT+1) + p(2*(j*NT+1)+1))/2; %d(re(p))/dt=0 at initial time
+            p(2*j*NT+1) = (p(2*j*NT+1) + p(2*(j*NT+1)+1))/2; %d(re(p))/dt=0 at initial time
+            p(2*j*NT+2) = 0; %im(p)=0 at initial time
+            p(2*((j+1)*NT-1)+1) = (p(2*((j+1)*NT-1)+1) + p(2*((j+1)*NT-2)+1))/2; %d(re(p))/dt=0 at final time
+            p(2*((j+1)*NT-2)+1) = (p(2*((j+1)*NT-1)+1) + p(2*((j+1)*NT-2)+1))/2; %d(re(p))/dt=0 at final time
+            p(2*((j+1)*NT-1)+2) = 0; %im(p)=0 at final time
         end
     end
-    
-    for j=0:(Tdim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
-        rhoSqrd = -eCoord(j,0)^2;
-        rho1Sqrd = -eCoord(j,0)^2; %explicitly 2d here as would need rho3 and rho4 for the 3d case etc.
-        rho2Sqrd = -eCoord(j,0)^2; 
-        for k=1:(d-1)
-            rhoSqrd = rhoSqrd + eCoord(j,k)^2;
-            rho1Sqrd = rho1Sqrd + (eCoord(j,k)+R*cos(theta))^2;
-            rho2Sqrd = rho2Sqrd + (eCoord(j,k)-R*cos(theta))^2;
-        end
-        rho = real(sqrt(rhoSqrd)); %rho should be real even without the real()
-        rho1 = real(sqrt(rho1Sqrd));
-        rho2 = real(sqrt(rho2Sqrd));
-        if R<alpha/mass
-            disp(['X = R*mass is too small. not possible to give thinwall input. it should be less that ',num2str(alpha)]);
-        else
-            if inP =='t'
-                p(2*j+1) = roots(1);
-            elseif inP == 'f'
-                p(2*j+1) = roots(3);
-            elseif inP == 'b'
-                if rho<(R-alpha/mass)
-                    p(2*j+1) = roots(1);
-                elseif rho>(R+alpha/mass)
-                    p(2*j+1) = roots(3);
-                else
-                    p(2*j+1) = v*tanh(mass*(rho-R)/2);
-                    %%pNeg(2*j+1) = v/cosh(mass*(rho-R)/2)^2;
-                end
-            elseif inP == 'p'
-                if rho1<(R-alpha/mass) && rho2<(R-alpha/mass)
-                    p(2*j+1) = roots(1);
-                elseif rho1>(R+alpha/mass) || rho2>(R+alpha/mass)
-                    p(2*j+1) = roots(3);
-                elseif real(eCoord(j,1))>0 %explicitly 2d here, note that the coord should be real
-                    p(2*j+1) = v*tanh(mass*(rho1-R)/2);
-                    %%pNeg(2*j+1) = v/cosh(mass*(rho1-R)/2)^2;
-                elseif real(eCoord(j,1))<0
-                    p(2*j+1) = v*tanh(mass*(rho2-R)/2);
-                    %%pNeg(2*j+1) = v/cosh(mass*(rho2-R)/2)^2;
-                else
-                    p(2*j+1) = roots(1); %if eCoord(j,1) == 0
-                end
-            end
-            if aq.perturbResponse == 'r' || aq.perturbResponse =='b'
-                p(2*j+1) = p(2*j+1) + perturbReal(j+1);
-            end
-            if aq.perturbResponse == 'i' || aq.perturbResponse =='b'
-                p(2*j+2) = p(2*j+2) + perturbImag(j+1);
-            end
-        end
-    end
-    
-    p(Tdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
-    
-    if inP == 'p' %fixing input periodic instanton to have zero time derivative at time boundaries
-        for j=0:(N-1)
-            p(2*(j*Nt+1)+1) = (p(2*j*Nt+1) + p(2*(j*Nt+1)+1))/2;
-            p(2*j*Nt+1) = (p(2*j*Nt+1) + p(2*(j*Nt+1)+1))/2;
-            p(2*(j*Nt+1)+2) = (p(2*j*Nt+2) + p(2*(j*Nt+1)+2))/2;
-            p(2*j*Nt+2) = (p(2*j*Nt+2) + p(2*(j*Nt+1)+2))/2;
-            p(2*((j+1)*Nt-1)) = (p(2*((j+1)*Nt)) + p(2*((j+1)*Nt-1)))/2;
-            p(2*((j+1)*Nt)) = (p(2*((j+1)*Nt)) + p(2*((j+1)*Nt-1)))/2;
-            p(2*((j+1)*Nt-2)+2) = (p(2*((j+1)*Nt-1)+2) + p(2*((j+1)*Nt-2)+2))/2;
-            p(2*((j+1)*Nt-1)+2) = (p(2*((j+1)*Nt-1)+2) + p(2*((j+1)*Nt-2)+2))/2;
-        end
-    end
-    
-    %%if inP == 'b' || inP == 'p' %fixing norm of pNeg
-        %%pNeg = pNeg/norm(pNeg);
-    %%end
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
     while (runsTest > closeness || runsCount<minRuns) && Xwait%beginning newton-raphson loop
@@ -346,7 +264,7 @@ for loop=1:totalLoops %starting parameter loop, note: answ.totalLoops=1 if answ.
     %propagating solution back in minkowskian time
     %checking that converged
     
-    if loop==1 %printing to terminal
+    if loop==0 %printing to terminal
         fprintf('%12s','time', 'runs','d','N','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end

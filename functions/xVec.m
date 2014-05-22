@@ -1,5 +1,5 @@
 %gives x as a vector
-%argument is Nt or Ntm
+%arguments are Nt and N
 function XxVec = xVec(xNt,xN)
     global L a;
     XxVec = zeros(xNt*xN,1);

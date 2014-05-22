@@ -7,15 +7,15 @@ aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
 aq.minValue = 32;
 aq.maxValue = 64;
-aq.totalLoops = 1;
-aq.printChoice = 'p';
-aq.printRun = 1;
+aq.totalLoops = 5;
+aq.printChoice = 'n';
+aq.printRun = 0;
 
 aq = askQuestions; %asking questions
 inP = aq.inputP; %just because I write this a lot
 
 global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
-global R X lambda mass v epsilon theta;
+global R X lambda mass v epsilon angle;
 parameters(inP); %assigning global variables according to parameters.m
 
 tic; %starting the clock
@@ -80,8 +80,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         rho2Sqrd = -eCoord(j,0)^2; 
         for k=1:(d-1)
             rhoSqrd = rhoSqrd + eCoord(j,k)^2;
-            rho1Sqrd = rho1Sqrd + (eCoord(j,k)+R*cos(theta))^2;
-            rho2Sqrd = rho2Sqrd + (eCoord(j,k)-R*cos(theta))^2;
+            rho1Sqrd = rho1Sqrd + (eCoord(j,k)+R*cos(angle))^2;
+            rho2Sqrd = rho2Sqrd + (eCoord(j,k)-R*cos(angle))^2;
         end
         rho = real(sqrt(rhoSqrd)); %rho should be real even without the real()
         rho1 = real(sqrt(rho1Sqrd));
@@ -348,7 +348,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     %1. initialize mp==mphi using last point of ephi and zeros- use complex phi
     mp = complex(zeros(Mdim,1));
     for j=0:(N-1)
-        mp(j*Ntm+1) = ep(j*Nt+1);%%roots(1);%%
+        mp(j*Ntm+1) = p(j*Nt+1);%%roots(1);%%
     end
 
     %2. initialize vel - defined at half steps, first step being at t=-1/2,
@@ -386,18 +386,14 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     %12. combine phi with ephi and save combination to file
     totalPhi = complex(zeros(Tdim,1));
-    bigNtm = Ntm;
-    Ntm = (Ntm-1)/up + 1;
-    Mdim = Ntm*N;
-    b = b*up;
     for j=0:(Tdim-1)
-        t = intCoord(j,0,Ntm+Nt);
-        x = intCoord(j,1,Ntm+Nt);
+        t = intCoord(j,0,NT);
+        x = intCoord(j,1,NT);
         if t<Ntm
-            totalPhi(j+1) = mp((Ntm-1-t)*up+x*bigNtm+1);
+            totalPhi(j+1) = mp((Ntm-1-t)+x*Ntm+1);
         else
             t = t - Ntm;
-            totalPhi(j+1) = ep((Nt-1-t)+x*Nt+1);
+            totalPhi(j+1) = p((Nt-1-t)+x*Nt+1);
         end
     end
     
@@ -417,6 +413,6 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
-    save( ['data/picOut',num2str(loop),'.mat'], 'totalPhi', 'Cp', 'minusDS','DDS', 'N', 'NtonN', 'NtmonNt', 'epsilon', 'mass', 'R', 'aq','Lt','Ltm','L');%saving phi, DDS and minusDS to file
+    save( ['data/picOut',num2str(loop),'.mat'], 'totalPhi', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi, DDS and minusDS to file
     
 end%closing parameter loop
