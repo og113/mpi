@@ -39,7 +39,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
-    alpha = 15; %determines range over which tanh(x) is used
+    alpha = 25; %determines range over which tanh(x) is used
     action = 2;
     
     actionLast = 1; %defining some quantities to stop Newton-Raphson loop when action stops varying

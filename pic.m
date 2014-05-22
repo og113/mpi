@@ -417,6 +417,6 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
-    save( ['data/picOut',num2str(loop),'.mat'], 'totalPhi', 'Cp', 'minusDS','DDS', 'N', 'Nt','epsilon', 'mass', 'R');%saving phi, DDS and minusDS to file
+    save( ['data/picOut',num2str(loop),'.mat'], 'totalPhi', 'Cp', 'minusDS','DDS', 'N', 'NtonN', 'NtmonNt', 'epsilon', 'mass', 'R', 'aq','Lt','Ltm','L');%saving phi, DDS and minusDS to file
     
 end%closing parameter loop

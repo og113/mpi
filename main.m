@@ -1,26 +1,27 @@
-%script to find the periodic instanton of the stable phi^4 with negative
-%mass
+%script to solve boundary value problem with non-zero T and theta. input is
+%the periodic instanton and then steps increasing theta or T.
 
-aq.inputP = 'p'; %struct to hold answers to questions aq short for 'answers to questions' - defaults in initialization
-aq.perturbResponse = 'n';
-aq.loopResponse = 'n';
-aq.parameterChoice = 'N';
-aq.minValue = 32;
-aq.maxValue = 64;
-aq.totalLoops = 1;
-aq.printChoice = 'p';
-aq.printRun = [1];
+fileNo = input('which data/picOut#.mat file to load? (#) ');
+data = load(['data/picOut',num2str(fileNo),'.mat']);
 
-aq = askQuestions; %asking questions
-inP = aq.inputP; %just because I write this a lot
+data.DDS = []; data.minusDS = []; data.Cp = []; %freeing some memory
+
+disp(['Lt = T/2 = ', num2str(data.Lt));
+disp('theta = 0');
+maxTheta = input('input final value of theta');
+%%maxLt = input('and input final value of Lt');
+totalLoops = input('and number of steps to get there ');
 
 global d N Nt Ntm NT NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
 global R X lambda mass v epsilon theta;
-parameters(inP); %assigning global variables according to parameters.m
+
+%%%write new parametersM.m function which takes in data and spits out the
+%%%rest of the parameters according to those in data
+parameters('p'); %assigning global variables according to parameters.m
 
 tic; %starting the clock
 
-for loop=1:aq.totalLoops %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
+for loop=1:totalLoops %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
     if aq.loopResponse == 'y' && aq.parameterChoice=='N'
         N = aq.minValue + floor(loop*(aq.maxValue - aq.minValue)/(aq.totalLoops-1));
         changeParameters(N,'N',inP);
