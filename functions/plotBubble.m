@@ -4,7 +4,7 @@ function plotBubble(p)
     XEdim = length(p)-1;
     XNt = sqrt(XEdim);
     t = rtVec(XEdim,XNt);
-    x = xVec(XNt);
+    x = xVec(XNt,XNt);
     if length(p)==(XEdim+1)
         p(XEdim+1) = [];
     end

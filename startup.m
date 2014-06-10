@@ -3,7 +3,7 @@
 addpath('/home/og113/Documents/mpi/functions');
 addpath('/home/og113/Documents/mpi/tests');
 
-global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
+global d N Nt Ntm NT NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
 global R X lambda mass v epsilon theta;
 
 parameters('p');

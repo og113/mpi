@@ -1,5 +1,5 @@
 %short function to plot real part of phi in euclidean domain
-%argument is Cp
+%arguments are Cp Nt and N
 function plotPhi(Cp,xNt,xN)
     x = xVec(xNt,xN);
     t = imag(eTVec(xNt,xN));

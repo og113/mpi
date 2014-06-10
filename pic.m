@@ -14,7 +14,7 @@ aq.printRun = 0;
 aq = askQuestions; %asking questions
 inP = aq.inputP; %just because I write this a lot
 
-global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
+global d N Nt Ntm NtonN NtmonNt NT L Lt Ltm a b Edim Mdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle;
 parameters(inP); %assigning global variables according to parameters.m
 
@@ -284,8 +284,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 disp(['epsilon potential = ',num2str(potE)]);
                 disp(['action = ',num2str(action)]);
             elseif aq.printChoice == 'p'
-                t = eTVec;
-                x = xVec(Nt);
+                t = eTVec(Nt,N);
+                x = xVec(Nt,N);
                 save data/phiEarly.mat t x Cp;
                 disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
             elseif aq.printChoice == 'v'
@@ -312,7 +312,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
 
         tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
-        delta = zeros(2*Edim+1);
+        delta = zeros(2*Edim+1,1);
         [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
             if flag == 1
@@ -335,7 +335,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             end
         end
 
-        p = p + delta(orderCol)'; %p -> p'
+        p = p + delta(orderCol); %p -> p'
 
         %pNeg and pZer plus log(det(DDS)) stuff
 
@@ -385,34 +385,37 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     end
     
     %12. combine phi with ephi and save combination to file
-    totalPhi = complex(zeros(Tdim,1));
+    tCp = complex(zeros(Tdim,1));
     for j=0:(Tdim-1)
         t = intCoord(j,0,NT);
         x = intCoord(j,1,NT);
         if t<Ntm
-            totalPhi(j+1) = mp((Ntm-1-t)+x*Ntm+1);
+            tCp(j+1) = mp((Ntm-1-t)+x*Ntm+1);
         else
             t = t - Ntm;
-            totalPhi(j+1) = p((Nt-1-t)+x*Nt+1);
+            tCp(j+1) = p(2*((Nt-1-t)+x*Nt)+1) + 1i*p(2*((Nt-1-t)+x*Nt)+2);
         end
     end
+    
+    tp = vecReal(tCp,Tdim);
+    tp(end+1) = p(2*Edim+1);
     
     %%should also calculate action over minkowskian time path as may
     %%contribute an imaginary part
     
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','d','N','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%12s','time', 'runs','d','N','Nt','Ntm','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
     fprintf('%12g',toc,runsCount,d,N,X,real(action));
     fprintf('%12g\n',imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,d,N,X,real(action));
+    fprintf(actionOut,'%12g',toc,runsCount,d,N,Nt,Ntm,X,real(action));
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
-    save( ['data/picOut',num2str(loop),'.mat'], 'totalPhi', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi, DDS and minusDS to file
+    save( ['data/picOut',num2str(loop),'.mat'], 'tCp', 'tp', 'minusDS','DDS','action', 'd', 'N', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi, DDS and minusDS to file
     
 end%closing parameter loop

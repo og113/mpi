@@ -6,9 +6,9 @@ global R X lambda mass v epsilon angle theta;
 
 fileNo = input('which data/picOut#.mat file to load? (#) '); %loading periodic instanton
 data = load(['data/picOut',num2str(fileNo),'.mat']);
-data.DDS = []; data.minusDS = []; data.Cp = []; %freeing some memory
+data.DDS = []; data.minusDS = []; %freeing some memory
 
-disp(['Lt = T/2 = ', num2str(data.Lt)); %asking input questions
+disp(['Lt = T/2 = ', num2str(data.Lt)]); %asking input questions
 disp('angle = 0');
 maxTheta = input('input final value of angle (input 0 for no steps) ');
 %%maxLt = input('and input final value of Lt');
@@ -19,7 +19,8 @@ end
 
 parametersMain(data); %assigning global variables according to data and parametersMain.m
 
-p = data.totalPhi; data.totalPhi = []; %assigning phi from pic.m output, and freeing up memory
+Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up memory
+p = data.tp; data.tp = [];
 
 tic; %starting the clock
 
@@ -28,10 +29,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         theta = theta + loop*maxTheta/(totalLoops - 1);
     end
     
-    alpha = 20; %determines range over which tanh(x) is used
+    alpha = 15; %determines range over which tanh(x) is used
     action = complex(2);
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
@@ -45,26 +44,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     syms x
     roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
     sort (roots); %roots sorted in ascending order
-
-    if loop==0
-        for j=0:(N-1) %fixing input periodic instanton to obey boundary conditions
-            p(2*(j*NT+1)+1) = (p(2*j*NT+1) + p(2*(j*NT+1)+1))/2; %d(re(p))/dt=0 at initial time
-            p(2*j*NT+1) = (p(2*j*NT+1) + p(2*(j*NT+1)+1))/2; %d(re(p))/dt=0 at initial time
-            p(2*j*NT+2) = 0; %im(p)=0 at initial time
-            p(2*((j+1)*NT-1)+1) = (p(2*((j+1)*NT-1)+1) + p(2*((j+1)*NT-2)+1))/2; %d(re(p))/dt=0 at final time
-            p(2*((j+1)*NT-2)+1) = (p(2*((j+1)*NT-1)+1) + p(2*((j+1)*NT-2)+1))/2; %d(re(p))/dt=0 at final time
-            p(2*((j+1)*NT-1)+2) = 0; %im(p)=0 at final time
-        end
-    else
-        for j=0:(N-1) %changing phi to obey boundary conditions with new theta
-            p(2*(j*NT+1)+1) = (p(2*j*NT+1) + p(2*(j*NT+1)+1))/2; %d(re(p))/dt=0 at initial time
-            p(2*j*NT+1) = (p(2*j*NT+1) + p(2*(j*NT+1)+1))/2; %d(re(p))/dt=0 at initial time
-            p(2*j*NT+2) = 0; %im(p)=0 at initial time
-            p(2*((j+1)*NT-1)+1) = (p(2*((j+1)*NT-1)+1) + p(2*((j+1)*NT-2)+1))/2; %d(re(p))/dt=0 at final time
-            p(2*((j+1)*NT-2)+1) = (p(2*((j+1)*NT-1)+1) + p(2*((j+1)*NT-2)+1))/2; %d(re(p))/dt=0 at final time
-            p(2*((j+1)*NT-1)+2) = 0; %im(p)=0 at final time
-        end
-    end
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
     while (runsTest > closeness || runsCount<minRuns) && Xwait%beginning newton-raphson loop
@@ -73,27 +52,19 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         actionLast = action;
         
         minusDS = zeros(2*Tdim+1,1); %-dS/d(p)
-        Cp = vecComplex(p,Tdim); %complex p, excluding real lagrange multiplier
         Chi0 = complex(zeros(N,1)); %to fix zero mode, alla kuznetsov, dl[7], though not quite
         %%CpNeg = complex(zeros(Tdim,1));
 
-        for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nt-1)
+        for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(NT-1)
             if j~=(N-1)
-                Chi0(j+1) = (p(2*((j+2)*Nt-1)+1)+1i*p(2*((j+2)*Nt-1)+1)-p(2*((j+1)*Nt-1)+1)+1i*p(2*((j+1)*Nt-1)+1))/a; %%note only use real derivative - this is a fudge due to initial input
+                Chi0(j+1) = (p(2*((j+2)*NT-1)+1)+1i*p(2*((j+2)*NT-1)+1)-p(2*((j+1)*NT-1)+1)+1i*p(2*((j+1)*NT-1)+1))/a; %%note only use real derivative - this is a fudge due to initial input
             else
-                Chi0(j+1) = (p(2*(Nt-1)+1)+1i*p(2*(Nt-1)+1)-p(2*(N*Nt-1)+1)+1i*p(2*(N*Nt-1)+1))/a;
+                Chi0(j+1) = (p(2*(NT-1)+1)+1i*p(2*(NT-1)+1)-p(2*(N*NT-1)+1)+1i*p(2*(N*NT-1)+1))/a;
             end
         end
         Chi0 = Chi0/norm(Chi0);
         
-        nonz = 0; %number of nonzero elements of DDS
-        if inP == 'b' || inP == 't' || inP == 'f'
-            nonz = 5*N^(d-1) + 4*N^(d-1)*(Nt-2)*(2*d+1) + 4*Tdim;
-        elseif inP == 'p'
-            nonz = 6*N^(d-1) + 4*N^(d-1)*(Nt-2)*(2*d+1) + 4*Tdim;
-        else %number of nonzero elements when fixing zero mode and with full boundary conditions - check
-            nonz = 5*Tdim*N^(d-1) + N^(d-1) + 4*(Nt-2)*N^(d-1)*(2*d+1);
-        end
+        nonz = 6*(Tdim-2*N) + 2*Tdim + 3*N; %number of nonzero elements of DDS
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
@@ -105,43 +76,33 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         clear c3;
         
         for j=0:(Tdim-1)
-            t = intCoord(j,0,Nt);
-            x = intCoord(j,1,Nt);
-            dtj = dt(j);
-            siteMeasure = a*Dt(j); %for sites in time
+            t = intCoord(j,0,NT);
+            x = intCoord(j,1,NT);
+            dtj = tdt(j);
+            siteMeasure = a*tDt(j); %for sites in time
             linkMeasure = a*dtj; %for links in time
             
             potL = potL - siteMeasure*(lambda/8)*(Cp(j+1)^2-v^2)^2;
             potE = potE - siteMeasure*epsilon*(Cp(j+1)-v)/v/2;
             if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
-                kinetic = kinetic - siteMeasure*(Cp(j+Nt+1)-Cp(j+1))^2/a^2/2;
-            elseif x~=(N-1) %avoinding using neigh and modulo as its slow
-                kinetic = kinetic - siteMeasure*(Cp(j+1-Nt*(N-1))-Cp(j+1))^2/a^2/2;
+                kinetic = kinetic - siteMeasure*(Cp(j+NT+1)-Cp(j+1))^2/a^2/2;
+            elseif x~=(N-1) %avoiding using neigh and modulo as its slow
+                kinetic = kinetic - siteMeasure*(Cp(j+1-NT*(N-1))-Cp(j+1))^2/a^2/2;
             end
-            if t==(Nt-1)
-                if inP=='p' || inP=='b' %boundary conditions
-                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1/b; %zero time derivative %don't forget to clear c3
-                    DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
-                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+1; DDSv(c3) = -1/b;
-                elseif inP=='t' || inP=='f'
-                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1; %zero change at boundary
-                    DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
-                end
+            if t==(NT-1)
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1/b; %zero real time derivative
+                DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+1; DDSv(c3) = -1/b;
                 DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = real(siteMeasure*Chi0(x+1)); %zero mode lagrange constraint
                 DDSm(c3) = 2*j+2; DDSn(c3) = 2*Tdim+1; DDSv(c3) = imag(siteMeasure*Chi0(x+1)); %the constraint is real but its derivative wrt phi may be complex
             else
                 kinetic = kinetic + linkMeasure*((Cp(j+2) - Cp(j+1))/dtj)^2/2;
                 if t==0
-                    if inP=='b' || inP=='t' || inP=='f'
-                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1; %zero change at boundary
-                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
-                    elseif inP=='p'
-                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = -1/b; %zero time derivative
-                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part zero
-                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = 1/b;
-                    end
+                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = -1/b; %zero time derivative
+                    DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part zero
+                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = 1/b;
                 else
-                    dtjm = dt(j-1);
+                    dtjm = tdt(j-1);
                     for k=0:(2*d-1)
                         sign = (-1)^k;
                         %%deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
@@ -158,7 +119,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                             DDSm(c3) = 2*j+2; DDSn(c3) = 2*(j+sign)+1; DDSv(c3) = -imag(a/dtd);
                             DDSm(c3) = 2*j+2; DDSn(c3) = 2*(j+sign)+2; DDSv(c3) = -real(a/dtd);
                         else
-                            neighb = neigh(j,direc,sign,Nt);
+                            neighb = neigh(j,direc,sign,NT);
                             minusDS(2*j+1) = minusDS(2*j+1) - real(siteMeasure*Cp(neighb+1)/a^2); %note Dt(j) = Dt(j+Nt) etc.
                             minusDS(2*j+2) = minusDS(2*j+2) - imag(siteMeasure*Cp(neighb+1)/a^2);
                             DDSm(c3) = 2*j+1; DDSn(c3) = 2*neighb+1; DDSv(c3) = real(siteMeasure/a^2);
@@ -181,10 +142,10 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             end
         end
         for j=0:(N-1) %adding last two rows, with lagrange multiplier terms
-            minusDS(2*Tdim+1) = minusDS(2*Tdim+1) - real(a*b*Chi0(j+1)*Cp((j+1)*Nt));
+            minusDS(2*Tdim+1) = minusDS(2*Tdim+1) - real(a*b*Chi0(j+1)*Cp((j+1)*NT));
             
-            DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*((j+1)*Nt-1)+1; DDSv(c3) = real(a*b*Chi0(j+1)); %at t=Nt-1
-            DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*((j+1)*Nt-1)+2; DDSv(c3) = -imag(a*b*Chi0(j+1));                          
+            DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*((j+1)*NT-1)+1; DDSv(c3) = real(a*b*Chi0(j+1)); %at t=Nt-1
+            DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*((j+1)*NT-1)+2; DDSv(c3) = -imag(a*b*Chi0(j+1));                          
         end
         clear c3; %returning persistent output of c3 to 1
         kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
@@ -201,9 +162,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                 disp(['epsilon potential = ',num2str(potE)]);
                 disp(['action = ',num2str(action)]);
             elseif aq.printChoice == 'p'
-                t = eTVec;
-                x = xVec(Nt);
-                save data/phiEarly.mat t x Cp;
+                save data/phiEarly.mat Cp;
                 disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
             elseif aq.printChoice == 'v'
                 save data/minusDS.mat minusDS;
@@ -265,10 +224,10 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     %checking that converged
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','d','N','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%12s','time', 'runs','d','N','Nt','Ntm','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
-    fprintf('%12g',toc,runsCount,d,N,X,real(action));
+    fprintf('%12g',toc,runsCount,d,N,Nt,Ntm,X,real(action));
     fprintf('%12g\n',imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
@@ -276,6 +235,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
-    save( ['/data/picVectors',num2str(loop),'.mat'], Cp, minusDS);%saving phi and minusDS to file
+    Cp = vecComplex(p,Tdim); 
+    
+    save( ['/data/picVectors',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi and minusDS to file
     
 end%closing while loop
