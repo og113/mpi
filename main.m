@@ -1,7 +1,7 @@
 %script to solve boundary value problem with non-zero T and angle. input is
 %the periodic instanton and then steps increasing angle or T.
 
-global d N Nt Ntm NT NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
+global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle theta;
 
 fileNo = input('which data/picOut#.mat file to load? (#) '); %loading periodic instanton
@@ -155,28 +155,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSv(DDSv==0) = [];
         DDS = sparse(DDSm,DDSn,DDSv,2*Tdim+1,2*Tdim+1);
 
-        if aq.printChoice~='n' && runsCount == aq.printRun %printing early if asked for
-            if aq.printChoice == 'a'
-                disp(['kinetic = ',num2str(kinetic)]);
-                disp(['lambda potential = ',num2str(potL)]);
-                disp(['epsilon potential = ',num2str(potE)]);
-                disp(['action = ',num2str(action)]);
-            elseif aq.printChoice == 'p'
-                save data/phiEarly.mat Cp;
-                disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
-            elseif aq.printChoice == 'v'
-                save data/minusDS.mat minusDS;
-                disp(['printed minusDS in data/minusDS.mat on run ',num2str(runsCount)]);
-            elseif aq.printChoice == 'm'
-                spy(DDS);
-                pause(5);
-                [DDSm,DDSn,DDSv] = find(DDS);
-                save data/DDS.mat DDSm DDSn DDSv;
-                disp(['printed DDS in data/DDS.mat on run ',num2str(runsCount)]);
-            else
-                disp('early print error');
-            end
-        end
+        %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L');
 
         [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
         
@@ -221,10 +200,10 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     end %closing newton-raphson loop
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','d','N','Nt','Ntm','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%12s','time', 'runs','d','N','Na','Nb', 'Nc', 'X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
-    fprintf('%12g',toc,runsCount,d,N,Nt,Ntm,X,real(action));
+    fprintf('%12g',toc,runsCount,d,N,Na,Nb,Nc,X,real(action));
     fprintf('%12g\n',imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
@@ -234,7 +213,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     
     Cp = vecComplex(p,Tdim); 
     
-    save( ['data/picVectors',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Nt', 'Ntm', 'NT', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi and minusDS to file
+    save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L','aq');%saving phi and minusDS to file
     
 end%closing parameter loop
 

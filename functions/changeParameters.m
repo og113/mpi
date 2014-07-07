@@ -3,16 +3,16 @@
 %where inputP is the input phi i.e. bubble, periodic instanton etc.
 %NB - has not been checked for consistency.
 function changeParameters(newParameter, parameterName, inputP)
-    global d N Nt Ntm NT NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim;
+    global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim;
     global R X lambda mass v epsilon theta;
     if parameterName == 'mass'
         mass = newParameter;
         X = mass*R;
-        epsilon = 2*(d-1)*mass^3/lambda/R/3;
+        epsilon = 2*mass^3/lambda/R/3;
         v =  mass/sqrt(lambda);
     elseif parameterName == 'epsilon'
         epsilon = newParameter;
-        lambda = 2*(d-1)*mass^3/epsilon/R/3;
+        lambda = 2*mass^3/epsilon/R/3;
         v =  mass/sqrt(lambda);
     elseif parameterName == 'L'
         L = newParameter;
@@ -20,102 +20,121 @@ function changeParameters(newParameter, parameterName, inputP)
     elseif parameterName == 'X'
         X = newParameter;
         mass = X/R;
-        epsilon = 2*(d-1)*mass^3/lambda/R/3;
+        epsilon = 2*mass^3/lambda/R/3;
         v =  mass/sqrt(lambda);
     elseif inputP == 'b' || inputP == 't' || inputP =='f' %specific changes to be made for the spherical vacuum bubble or pure vacuum
-        Lt = 2*R;
+        Lb = 2*R;
 		L = 4*R;
 		a = L/(N-1);
-		b = Lt/(Nt-1);
-        Ltm = (Ntm-1)*b;
+		b = Lb/(Nb-1);
+        La = (Na-1)*b;
+        Lc = (Nc-1)*b;
         if parameterName == 'N'
+            NaonN = Na/N;
+            NbonN = Nb/N;
+            NconN = Nc/N;
             N = newParameter;
-			Nt = floor(N*NtonN);
-            Ntm = floor(Nt*NtmonNt);
-            NT = N + Ntm;
+            Na = floor(N*NaonN);
+            Nb = floor(N*NbonN);
+			Nc = floor(N*NconN);
+            NT = N + Na;
 			a = L/(N-1);
-			b = Lt/(Nt-1);
-            Ltm = (Ntm-1)*b;
-			Edim = N^(d-1)*Nt;
-            Mdim = N^(d-1)*Ntm;
-            Tdim = Edim + Mdim;
+			b = Lb/(Nb-1);
+            La = (Na-1)*b;
+            Lc = (Nc-1)*b;
+            Adim = N*Na;
+            Bdim = N*Nb;
+            Cdim = N*Nc;
+            Tdim = Adim + Bdim + Cdim;
         elseif parameterName == 'R'
             R = newParameter;
 			L = 4*R;
-			Lt = 2*R;
+			Lb = 2*R;
 			X = mass*R;
-			epsilon = 2*(d-1)*mass^3/lambda/R/3;
+			epsilon = 2*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
 			a = L/(N-1);
-			b = Lt/(Nt-1);
-            Ltm = (Ntm-1)*b;
-        elseif parameterName == 'Lt'
-            Lt = newParameter;
-            b = Lt/(Nt-1);
-            Ltm = (Ntm-1)*b;
+			b = Lb/(Nb-1);
+            La = (Na-1)*b;
+            Lc = (Nc-1)*b;
+        elseif parameterName == 'Lb'
+            Lb = newParameter;
+            b = Lb/(Nb-1);
+            La = (Na-1)*b;
+            Lc = (Nc-1)*b;
         elseif parameterName == 'lambda'
             epsilon = epsilon*(lambda/newParameter); %epsilon scales like one over lambda
             lambda = newParameter;
-            R = 2*(d-1)*mass^3/epsilon/lambda/3;
+            R = 2*mass^3/epsilon/lambda/3;
             X = mass*R;
             v =  mass/sqrt(lambda);
             L = 4*R;
-            Lt = 2*R;
+            Lb = 2*R;
             a = L/(N-1);
-            b = Lt/(Nt-1);
-            Ltm = b*(Ntm-1);
+            b = Lb/(Nb-1);
+            La = b*(Na-1);
+            Lc = b*(Nc-1);
         end
     elseif inputP == 'p' %specific changes to be made for the periodic instanton
-        Lt = 1.2*R/2; %Lt = T/2, where T is the period of the periodic instanton
-        theta = asin(Lt/R);
-        L = 3*Lt*tan(theta); %Lt*tan(theta) is thin-wall analytic width of periodic instanton bubble
+        Lb = 1.2*R/2; %Lt = T/2, where T is the period of the periodic instanton
+        theta = asin(Lb/R);
+        L = 8*Lb*tan(theta); %Lt*tan(theta) is thin-wall analytic width of periodic instanton bubble
         a = L/(N-1);
-		b = Lt/(Nt-1);
-        Ltm = (Ntm-1)*b;
+		b = Lb/(Nb-1);
+        La = (Na-1)*b;
+        Lc = (Nc-1)*b;
         if parameterName == 'N'
+            NaonN = Na/N;
+            NbonN = Nb/N;
+            NconN = Nc/N;
             N = newParameter;
-            Nt = floor(N*NtonN);
-            Ntm = floor(Nt*NtmonNt);
-            NT = Nt + Ntm;
+            Na = floor(N*NaonN);
+            Nb = floor(N*NbonN);
+			Nc = floor(N*NconN);
+            NT = Nb + Na;
             a = L/(N-1);
-            b = Lt/(Nt-1);
-            Ltm = b*(Ntm-1);
-            Edim = N^(d-1)*Nt;
-            Mdim = N^(d-1)*Ntm;
-            Tdim = Edim + Mdim;
+            b = Lb/(Nb-1);
+            La = b*(Na-1);
+            La = b*(Nc-1);
+            Adim = N^(d-1)*Na;
+            Bdim = N^(d-1)*Nb;
+            Cdim = N^(d-1)*Nc;
+            Tdim = Adim + Bdim + Cdim;
         elseif parameterName == 'R'
             R = newParameter;
-            Lt = 1.2*R/2;
-            theta = asin(Lt/R);
-            L = 3*Lt*tan(theta);
+            Lb = 1.2*R/2;
+            theta = asin(Lb/R);
+            L = 8*Lb*tan(theta);
             a = L/(N-1);
-            b = Lt/(Nt-1);
-            Ltm = (Ntm-1)*b;
+            b = Lb/(Nb-1);
+            La = (Na-1)*b;
             X = mass*R;
-			epsilon = 2*(d-1)*mass^3/lambda/R/3;
+			epsilon = 2*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
         elseif parameterName == 'Lt'
-            Lt = newParameter;
-            R = 2*Lt/1.2;
-            theta = asin(Lt/R);
-            L = 3*Lt*tan(theta);
+            Lb = newParameter;
+            R = 2*Lb/1.2;
+            theta = asin(Lb/R);
+            L = 8*Lb*tan(theta);
             X = mass*R;
-            epsilon = 2*(d-1)*mass^3/lambda/R/3;
+            epsilon = 2*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
             a = L/(N-1);
-            b = Lt/(Nt-1);
-            Ltm = b*(Ntm-1);
+            b = Lb/(Nb-1);
+            La = b*(Na-1);
+            Lc = b*(Nc-1);
         elseif parameterName == 'lambda'
             epsilon = epsilon*(lambda/newParameter); %epsilon scales like 1/lambda
             lambda = newParameter;
-            R = 2*(d-1)*mass^3/epsilon/lambda/3;
+            R = 2*mass^3/epsilon/lambda/3;
             X = mass*R;
             v =  mass/sqrt(lambda);
-            Lt = 1.2*R/2;
-            theta = asin(Lt/R);
-            L = 3*Lt*tan(theta);
+            Lb = 1.2*R/2;
+            theta = asin(Lb/R);
+            L = 8*Lb*tan(theta);
             a = L/(N-1);
-            b = Lt/(Nt-1);
-            Ltm = b*(Ntm-1);
+            b = Lb/(Nb-1);
+            La = b*(Na-1);
+            Lc = b*(Nc-1);
         end
     end
