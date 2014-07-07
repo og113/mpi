@@ -29,14 +29,14 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         theta = theta + loop*maxTheta/(totalLoops - 1);
     end
     
-    alpha = 15; %determines range over which tanh(x) is used
+    alpha = 5; %determines range over which tanh(x) is used
     action = complex(2);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
     runsTest = 1;
     closeness = 1e-4;
-    minRuns = 6;
+    minRuns = 3;
     
     %%pNeg = zeros(2*Tdim,1); %negative eigenvector
     %%pZero = zeros(2*Tdim,1); %zero eigenvector
@@ -64,7 +64,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         end
         Chi0 = Chi0/norm(Chi0);
         
-        nonz = 6*(Tdim-2*N) + 2*Tdim + 3*N; %number of nonzero elements of DDS
+        nonz = 6*NT*(N-2) + 4*Tdim; %number of nonzero elements of DDS - an overestimate
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
@@ -188,7 +188,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
 
         tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
-        delta = zeros(2*Tdim+1);
+        delta = zeros(2*Tdim+1,1);
         [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
             if flag == 1
@@ -211,7 +211,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             end
         end
 
-        p = p + delta(orderCol)'; %p -> p'
+        p = p + delta(orderCol); %p -> p'
 
         %pNeg and pZer plus log(det(DDS)) stuff
 
@@ -219,9 +219,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         [Xwait,aq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
     end %closing newton-raphson loop
-
-    %propagating solution back in minkowskian time
-    %checking that converged
     
     if loop==0 %printing to terminal
         fprintf('%12s','time', 'runs','d','N','Nt','Ntm','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
@@ -237,6 +234,10 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     
     Cp = vecComplex(p,Tdim); 
     
-    save( ['/data/picVectors',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi and minusDS to file
+    save( ['data/picVectors',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Nt', 'Ntm', 'NT', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi and minusDS to file
     
-end%closing while loop
+end%closing parameter loop
+
+data = load(['data/picOut',num2str(loop),'.mat']);
+data.tCp = data.Cp;
+plotTphi(data);

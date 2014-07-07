@@ -26,7 +26,7 @@ function parameters(inputData)
     X = mass*R;
     epsilon = 2*(d-1)*mass^3/lambda/R/3;
     v =  mass/sqrt(lambda);   
-    angle = asin(Lt/R);
+    angle = asin(Lt/R/2);
     a = L/(N-1);
     b = Lt/(Nt-1);
     Ltm = (Ntm-1)*b;

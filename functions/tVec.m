@@ -7,7 +7,7 @@ function XtVec = tVec(xNt,xNT,xN)
         t = intCoord(j,0,xNT);
         x = intCoord(j,1,xNT);
         if t<(xNT-xNt)
-            XtVec(j+1) = -1i*Ltm + b*t;
+            XtVec(j+1) = 1i*Lt + b*(t-xNT+xNt);
         else
             XtVec(j+1) = 1i*(Lt - b*(t-(xNT-xNt)));
         end

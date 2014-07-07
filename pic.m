@@ -31,7 +31,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
-    alpha = 15; %determines range over which tanh(x) is used
+    alpha = 5; %determines range over which tanh(x) is used
     action = complex(2);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
@@ -129,15 +129,16 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     p(Edim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
     if inP == 'p' %fixing input periodic instanton to have zero time derivative at time boundaries
+        open = 0; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
-            p(2*(j*Nt+1)+1) = (p(2*j*Nt+1) + p(2*(j*Nt+1)+1))/2;
-            p(2*j*Nt+1) = (p(2*j*Nt+1) + p(2*(j*Nt+1)+1))/2;
-            p(2*(j*Nt+1)+2) = (p(2*j*Nt+2) + p(2*(j*Nt+1)+2))/2;
-            p(2*j*Nt+2) = (p(2*j*Nt+2) + p(2*(j*Nt+1)+2))/2;
-            p(2*((j+1)*Nt-1)) = (p(2*((j+1)*Nt)) + p(2*((j+1)*Nt-1)))/2;
-            p(2*((j+1)*Nt)) = (p(2*((j+1)*Nt)) + p(2*((j+1)*Nt-1)))/2;
-            p(2*((j+1)*Nt-2)+2) = (p(2*((j+1)*Nt-1)+2) + p(2*((j+1)*Nt-2)+2))/2;
-            p(2*((j+1)*Nt-1)+2) = (p(2*((j+1)*Nt-1)+2) + p(2*((j+1)*Nt-2)+2))/2;
+            p(2*j*Nt+1) = open*p(2*j*Nt+1) + (1-open)*p(2*(j*Nt+1)+1);%intiial time real
+            p(2*(j*Nt+1)+1) = open*p(2*j*Nt+1) + (1-open)*p(2*(j*Nt+1)+1);
+            p(2*j*Nt+2) = open*p(2*j*Nt+2) + (1-open)*p(2*(j*Nt+1)+2);%initial time imag
+            p(2*(j*Nt+1)+2) = open*p(2*j*Nt+2) + (1-open)*p(2*(j*Nt+1)+2);
+            p(2*((j+1)*Nt-1)) = open*p(2*((j+1)*Nt)) + (1-open)*p(2*((j+1)*Nt-1));%final time real
+            p(2*((j+1)*Nt)) = open*p(2*((j+1)*Nt)) + (1-open)*p(2*((j+1)*Nt-1));
+            p(2*((j+1)*Nt-2)+2) = open*p(2*((j+1)*Nt-1)+2) + (1-open)*p(2*((j+1)*Nt-2)+2);%final time imag
+            p(2*((j+1)*Nt-1)+2) = open*p(2*((j+1)*Nt-1)+2) + (1-open)*p(2*((j+1)*Nt-2)+2);
         end
     end
     
@@ -348,7 +349,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     %1. initialize mp==mphi using last point of ephi and zeros- use complex phi
     mp = complex(zeros(Mdim,1));
     for j=0:(N-1)
-        mp(j*Ntm+1) = p(j*Nt+1);%%roots(1);%%
+        mp(j*Ntm+1) = p(2*(j*Nt)+1) + 1i*p(2*(j*Nt)+2);%%roots(1);%%
     end
 
     %2. initialize vel - defined at half steps, first step being at t=-1/2,
@@ -361,6 +362,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         vel(k+1) = 0; %%due to boundary condition
     end
 
+    
     %3. initialize acc using phi and expression from equation of motion and zeros-
     %complex
     acc = complex(zeros(Mdim,1));
@@ -370,20 +372,22 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             -(lambda*Dt0/2)*mp(k+1)*(mp(k+1)^2-v^2) - epsilon*Dt0/2/v)/dtau;
     end
 
-    %5. run loop
-    for j=1:(Ntm-1)
-        for k=0:(N-1)
-            l = j+k*Ntm;
-            vel(l+1) = vel(l) + dtau*acc(l);
-            mp(l+1) = mp(l) + dtau*vel(l+1);%
-        end
-        for k=0:(N-1)
-            l = j+k*Ntm;
-            acc(l+1) = (1/a^2)*(mp(neigh(l,1,1,Ntm)+1)+mp(neigh(l,1,-1,Ntm)+1)-2*mp(l+1)) ...
-            -(lambda/2)*mp(l+1)*(mp(l+1)^2-v^2) - epsilon/2/v;    
-        end
+    %7. run loop
+for j=1:(Ntm-1)
+    for k=0:(N-1)
+        l = j+k*Ntm;
+        vel(l+1) = vel(l) + dtau*acc(l);
+        mp(l+1) = mp(l) + dtau*vel(l+1);%
     end
-    
+    for k=0:(N-1)
+        l = j+k*Ntm;
+        acc(l+1) = (1/a^2)*(mp(neigh(l,1,1,Ntm)+1)+mp(neigh(l,1,-1,Ntm)+1)-2*mp(l+1)) ...
+        -(lambda/2)*mp(l+1)*(mp(l+1)^2-v^2) - epsilon/2/v;    
+        H(j+1) = H(j+1) + a*vel(l+1)^2/2 + (mp(neigh(l,1,1,Ntm)+1)-mp(l+1))^2/a...
+            + (a*lambda/8)*(mp(l+1)^2-v^2) + a*epsilon*(mp(l+1)-v)/2/v;
+    end
+end
+
     %12. combine phi with ephi and save combination to file
     tCp = complex(zeros(Tdim,1));
     for j=0:(Tdim-1)
@@ -393,7 +397,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             tCp(j+1) = mp((Ntm-1-t)+x*Ntm+1);
         else
             t = t - Ntm;
-            tCp(j+1) = p(2*((Nt-1-t)+x*Nt)+1) + 1i*p(2*((Nt-1-t)+x*Nt)+2);
+            tCp(j+1) = p(2*(t+x*Nt)+1) + 1i*p(2*(t+x*Nt)+2);
         end
     end
     
@@ -405,7 +409,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','d','N','Nt','Ntm','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%12s','time', 'runs','d','N','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
     fprintf('%12g',toc,runsCount,d,N,X,real(action));
@@ -416,6 +420,14 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
-    save( ['data/picOut',num2str(loop),'.mat'], 'tCp', 'tp', 'minusDS','DDS','action', 'd', 'N', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi, DDS and minusDS to file
+    save( ['data/picOut',num2str(loop),'.mat'], 'tCp', 'tp', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Nt', 'Ntm' , 'NT', 'NtonN', 'NtmonNt', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi, DDS and minusDS to file
     
 end%closing parameter loop
+
+toPlot = input('plot euclidean or total phi or not? (e,t,n) ','s');
+if toPlot == 'e'
+    plotPhi(Cp,Nt,N);
+elseif toPlot == 't'
+    data = load(['data/picOut',num2str(loop),'.mat']);
+    plotTphi(data);
+end

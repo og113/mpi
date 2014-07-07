@@ -10,8 +10,8 @@ function parameters(inputP)
     N = 80;
     NtonN = 1;
     NtmonNt = 1.2;
-    R = 40;
-    mass = 4;
+    R = 10;
+    mass = 2;
     lambda = 1/10;
     
     %derived global parameters
@@ -34,8 +34,8 @@ function parameters(inputP)
         Ltm = (Ntm-1)*b;
     elseif inputP=='p'
         Lt = 1.2*R/2;
-        angle = asin(Lt/R);
-        L = 3*Lt*tan(angle);
+        angle = asin(Lt/R/2);
+        L = 8*Lt*tan(angle);
         a = L/(N-1);
 		b = Lt/(Nt-1);
         Ltm = (Ntm-1)*b;

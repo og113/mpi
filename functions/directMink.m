@@ -124,7 +124,7 @@ for j=0:(Tdim-1)
         totalPhi(j+1) = mp((Ntm-1-t)*up+x*bigNtm+1);
     else
         t = t - Ntm;
-        totalPhi(j+1) = ep((Nt-1-t)+x*Nt+1);
+        totalPhi(j+1) = ep(t+x*Nt+1);
     end
 end
 
