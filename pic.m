@@ -18,16 +18,17 @@ global d N Na Nb Nc L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variabl
 global R X lambda mass v epsilon angle;
 parameters(inP); %assigning global variables according to parameters.m
 
-tic; %starting the clock
 
 for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
-    if aq.loopResponse == 'y' && aq.parameterChoice=='N'
+    if strcmp(aq.loopResponse,'y') && strcmp(aq.parameterChoice,'N')
         N = aq.minValue + floor(loop*(aq.maxValue - aq.minValue)/(aq.totalLoops-1));
         changeParameters(N,'N',inP);
-    elseif aq.loopResponse == 'y'
+    elseif strcmp(aq.loopResponse,'y')
         loopParameter = aq.minValue + loop*(aq.maxValue - aq.minValue)/(aq.totalLoops-1);
         changeParameters (loopParameter,aq.parameterChoice, inP);
     end
+    
+    tic; %starting the clock
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
@@ -49,7 +50,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
     sort (roots); %roots sorted in ascending orderhttps://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
 
-    if aq.perturbResponse ~='n' %assigning values to perturbations if user wants perturbations
+    if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
         perturbReal = v*1e-4*rand(Bdim,1);
         perturbImag = v*1e-4*rand(Bdim,1);
         for j=1:(d-1)
@@ -160,8 +161,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         if aq.printChoice~='n' && runsCount == aq.printRun && aq.printChoice == 'p' %printing p early if asked for 
             t = eTVec(Nb,N);
             x = xVec(Nb,N);
-            save data/phiEarly.mat t x Cp;
-            disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
+            save (['data/phiEarly',num2str(loop),'.mat'], 't', 'x', 'Cp');
+            %disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
         end
 
         for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
@@ -450,14 +451,14 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','d','N','X','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%12s','time', 'runs','d','N','X','Lb','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
-    fprintf('%12g',toc,runsCount,d,N,X,real(action));
+    fprintf('%12g',toc,runsCount,d,N,X,Lb,real(action));
     fprintf('%12g\n',imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,d,N,Nb,Na,X,real(action));
+    fprintf(actionOut,'%12g',toc,runsCount,d,N,Nb,Na,X,Lb,real(action));
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     

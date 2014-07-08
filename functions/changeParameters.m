@@ -78,7 +78,7 @@ function changeParameters(newParameter, parameterName, inputP)
     elseif strcmp(inputP,'p') %specific changes to be made for the periodic instanton
         Lb = 1.2*R/2; %Lt = T/2, where T is the period of the periodic instanton
         angle = asin(Lb/R);
-        L = 3*Lb*tan(theta); %Lt*tan(theta) is thin-wall analytic width of periodic instanton bubble
+        L = 3*Lb*tan(angle); %Lt*tan(angle) is thin-wall analytic width of periodic instanton bubble
         a = L/(N-1);
 		b = Lb/(Nb-1);
         La = (Na-1)*b;
@@ -104,7 +104,7 @@ function changeParameters(newParameter, parameterName, inputP)
             R = newParameter;
             Lb = 1.2*R/2;
             angle = asin(Lb/R);
-            L = 3*Lb*tan(theta);
+            L = 3*Lb*tan(angle);
             a = L/(N-1);
             b = Lb/(Nb-1);
             La = (Na-1)*b;
@@ -115,7 +115,7 @@ function changeParameters(newParameter, parameterName, inputP)
             Lb = newParameter;
             R = 2*Lb/1.2;
             angle = asin(Lb/R);
-            L = 3*Lb*tan(theta);
+            L = 3*Lb*tan(angle);
             X = mass*R;
             epsilon = 2*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
@@ -131,7 +131,7 @@ function changeParameters(newParameter, parameterName, inputP)
             v =  mass/sqrt(lambda);
             Lb = 1.2*R/2;
             angle = asin(Lb/R);
-            L = 3*Lb*tan(theta);
+            L = 3*Lb*tan(angle);
             a = L/(N-1);
             b = Lb/(Nb-1);
             La = b*(Na-1);

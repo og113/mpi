@@ -9,7 +9,7 @@ function parameters(inputData)
     N = inputData.N;
     Na = inputData.Na;
     Nb = inputData.Nb;
-    Nc = inputData.Nb;
+    Nc = inputData.Nc;
     R = inputData.R;
     mass = inputData.mass;
     lambda = inputData.lambda;
@@ -21,8 +21,8 @@ function parameters(inputData)
     NT = Na + Nb + Nc;
     Adim = N*Na;
     Bdim = N*Nb;
-    Bdim = N*Nc;
-    Tdim = Adim + Bdim + Cdim;
+    Cdim = N*Nc;
+    Tdim = N*NT;
     X = mass*R;
     epsilon = 2*mass^3/lambda/R/3;
     v =  mass/sqrt(lambda);   

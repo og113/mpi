@@ -10,7 +10,7 @@ function parameters(inputP)
     N = 80;
     Na = 100;
     Nb = 80;
-    Nc = 80;
+    Nc = 2;
     R = 10;
     mass = 3;
     lambda = 1/10;
@@ -20,7 +20,7 @@ function parameters(inputP)
     Adim = Na*N;
     Bdim = Nb*N;
     Cdim = Nc*N;
-    Tdim = Adim + Bdim + Cdim;
+    Tdim = NT*N;
     X = mass*R;
     epsilon = 2*mass^3/lambda/R/3;
     v =  mass/sqrt(lambda);
