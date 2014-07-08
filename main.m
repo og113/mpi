@@ -22,6 +22,8 @@ parametersMain(data); %assigning global variables according to data and paramete
 Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up memory
 p = data.tp; data.tp = [];
 
+Omega = omega(N); %for implementation of initial time boundary conditions
+
 for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
     if totalLoops>1
         theta = theta + loop*maxTheta/(totalLoops - 1);
@@ -56,8 +58,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             end
         end
         Chi0 = Chi0/norm(Chi0);
-        
-        Omega = omega(NT,N); %for implementation of initial time boundary conditions
         
         nonz = 6*NT*(N-2) + 4*Tdim; %number of nonzero elements of DDS - an overestimate
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
@@ -221,21 +221,21 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     end %closing newton-raphson loop
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','log(runsTest)','N','Na','Nb', 'Nc', 'X','Lb','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%12s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
-    fprintf('%12g',toc,runsCount,log(runsTest),N,Na,Nb,Nc,X,Lb,real(action));
+    fprintf('%12g',toc,runsCount,N,Na,Nb,Nc,X,Lb,real(action));
     fprintf('%12g\n',imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,log(runsTest),N,X,Lb,real(action));
+    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,real(action));
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
     save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L','aq');%saving phi and minusDS to file
     
+    data = load(['data/main',num2str(loop),'.mat']);
+    data.tCp = data.Cp;
+    plotTphi(data);
+    
 end%closing parameter loop
-
-data = load(['data/picOut',num2str(loop),'.mat']);
-data.tCp = data.Cp;
-plotTphi(data);

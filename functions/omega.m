@@ -1,7 +1,7 @@
 %function to find omega matrix of dl[7] - kuznetsov appendix
 %output is omega matrix
 %arguments are Nt and N
-function Xomega = omega(xNt,xN)
+function Xomega = omega(xN)
     global L mass;
     xa = L/(xN-1);
     Xomega = complex(zeros(xN));

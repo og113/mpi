@@ -3,7 +3,7 @@
 %argument is inputP
 function parameters(inputP)
     global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim;
-    global R X lambda mass v epsilon angle;
+    global R X lambda mass v epsilon angle theta;
     
     %main global parameters
     d = 2;
@@ -14,6 +14,7 @@ function parameters(inputP)
     R = 10;
     mass = 3;
     lambda = 1/10;
+    theta = 0;
     
     %derived global parameters
     NT = Na + Nb + Nc;
