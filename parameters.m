@@ -35,8 +35,8 @@ function parameters(inputP)
         Lc = (Nc-1)*b;
     elseif inputP=='p'
         Lb = 1.2*R/2;
-        angle = asin(Lb/R/2);
-        L = 8*Lb*tan(angle);
+        angle = asin(Lb/R);
+        L = 3*Lb*tan(angle);
         a = L/(N-1);
 		b = Lb/(Nb-1);
         La = (Na-1)*b;

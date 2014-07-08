@@ -4,32 +4,32 @@
 %NB - has not been checked for consistency.
 function changeParameters(newParameter, parameterName, inputP)
     global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim;
-    global R X lambda mass v epsilon theta;
-    if parameterName == 'mass'
+    global R X lambda mass v epsilon angle;
+    if strcmp(parameterName,'mass')
         mass = newParameter;
         X = mass*R;
         epsilon = 2*mass^3/lambda/R/3;
         v =  mass/sqrt(lambda);
-    elseif parameterName == 'epsilon'
+    elseif strcmp(parameterName,'epsilon')
         epsilon = newParameter;
         lambda = 2*mass^3/epsilon/R/3;
         v =  mass/sqrt(lambda);
-    elseif parameterName == 'L'
+    elseif strcmp(parameterName,'L')
         L = newParameter;
         a = L/(N-1);
-    elseif parameterName == 'X'
+    elseif strcmp(parameterName,'X')
         X = newParameter;
         mass = X/R;
         epsilon = 2*mass^3/lambda/R/3;
         v =  mass/sqrt(lambda);
-    elseif inputP == 'b' || inputP == 't' || inputP =='f' %specific changes to be made for the spherical vacuum bubble or pure vacuum
+    elseif strcmp(inputP,'b') || strcmp(inputP,'t') || strcmp(inputP,'f') %specific changes to be made for the spherical vacuum bubble or pure vacuum
         Lb = 2*R;
 		L = 4*R;
 		a = L/(N-1);
 		b = Lb/(Nb-1);
         La = (Na-1)*b;
         Lc = (Nc-1)*b;
-        if parameterName == 'N'
+        if strcmp(parameterName,'N')
             NaonN = Na/N;
             NbonN = Nb/N;
             NconN = Nc/N;
@@ -46,7 +46,7 @@ function changeParameters(newParameter, parameterName, inputP)
             Bdim = N*Nb;
             Cdim = N*Nc;
             Tdim = Adim + Bdim + Cdim;
-        elseif parameterName == 'R'
+        elseif strcmp(parameterName,'R')
             R = newParameter;
 			L = 4*R;
 			Lb = 2*R;
@@ -57,12 +57,12 @@ function changeParameters(newParameter, parameterName, inputP)
 			b = Lb/(Nb-1);
             La = (Na-1)*b;
             Lc = (Nc-1)*b;
-        elseif parameterName == 'Lb'
+        elseif strcmp(parameterName,'Lb')
             Lb = newParameter;
             b = Lb/(Nb-1);
             La = (Na-1)*b;
             Lc = (Nc-1)*b;
-        elseif parameterName == 'lambda'
+        elseif strcmp(parameterName,'lambda')
             epsilon = epsilon*(lambda/newParameter); %epsilon scales like one over lambda
             lambda = newParameter;
             R = 2*mass^3/epsilon/lambda/3;
@@ -75,15 +75,15 @@ function changeParameters(newParameter, parameterName, inputP)
             La = b*(Na-1);
             Lc = b*(Nc-1);
         end
-    elseif inputP == 'p' %specific changes to be made for the periodic instanton
+    elseif strcmp(inputP,'p') %specific changes to be made for the periodic instanton
         Lb = 1.2*R/2; %Lt = T/2, where T is the period of the periodic instanton
-        theta = asin(Lb/R);
-        L = 8*Lb*tan(theta); %Lt*tan(theta) is thin-wall analytic width of periodic instanton bubble
+        angle = asin(Lb/R);
+        L = 3*Lb*tan(theta); %Lt*tan(theta) is thin-wall analytic width of periodic instanton bubble
         a = L/(N-1);
 		b = Lb/(Nb-1);
         La = (Na-1)*b;
         Lc = (Nc-1)*b;
-        if parameterName == 'N'
+        if strcmp(parameterName,'N')
             NaonN = Na/N;
             NbonN = Nb/N;
             NconN = Nc/N;
@@ -95,27 +95,27 @@ function changeParameters(newParameter, parameterName, inputP)
             a = L/(N-1);
             b = Lb/(Nb-1);
             La = b*(Na-1);
-            La = b*(Nc-1);
+            Lc = b*(Nc-1);
             Adim = N^(d-1)*Na;
             Bdim = N^(d-1)*Nb;
             Cdim = N^(d-1)*Nc;
             Tdim = Adim + Bdim + Cdim;
-        elseif parameterName == 'R'
+        elseif strcmp(parameterName,'R')
             R = newParameter;
             Lb = 1.2*R/2;
-            theta = asin(Lb/R);
-            L = 8*Lb*tan(theta);
+            angle = asin(Lb/R);
+            L = 3*Lb*tan(theta);
             a = L/(N-1);
             b = Lb/(Nb-1);
             La = (Na-1)*b;
             X = mass*R;
 			epsilon = 2*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
-        elseif parameterName == 'Lt'
+        elseif strcmp(parameterName,'Lb')
             Lb = newParameter;
             R = 2*Lb/1.2;
-            theta = asin(Lb/R);
-            L = 8*Lb*tan(theta);
+            angle = asin(Lb/R);
+            L = 3*Lb*tan(theta);
             X = mass*R;
             epsilon = 2*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
@@ -123,15 +123,15 @@ function changeParameters(newParameter, parameterName, inputP)
             b = Lb/(Nb-1);
             La = b*(Na-1);
             Lc = b*(Nc-1);
-        elseif parameterName == 'lambda'
+        elseif strcmp(parameterName,'lambda')
             epsilon = epsilon*(lambda/newParameter); %epsilon scales like 1/lambda
             lambda = newParameter;
             R = 2*mass^3/epsilon/lambda/3;
             X = mass*R;
             v =  mass/sqrt(lambda);
             Lb = 1.2*R/2;
-            theta = asin(Lb/R);
-            L = 8*Lb*tan(theta);
+            angle = asin(Lb/R);
+            L = 3*Lb*tan(theta);
             a = L/(N-1);
             b = Lb/(Nb-1);
             La = b*(Na-1);

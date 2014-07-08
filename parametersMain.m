@@ -24,9 +24,9 @@ function parameters(inputData)
     Bdim = N*Nc;
     Tdim = Adim + Bdim + Cdim;
     X = mass*R;
-    epsilon = 2*(d-1)*mass^3/lambda/R/3;
+    epsilon = 2*mass^3/lambda/R/3;
     v =  mass/sqrt(lambda);   
-    angle = asin(Lb/R/2);
+    angle = asin(Lb/R);
     a = L/(N-1);
     b = Lb/(Nb-1);
     La = (Na-1)*b;

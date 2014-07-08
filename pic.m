@@ -80,8 +80,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         rho2Sqrd = -eCoord(j,0)^2; 
         for k=1:(d-1)
             rhoSqrd = rhoSqrd + eCoord(j,k)^2;
-            rho1Sqrd = rho1Sqrd + (eCoord(j,k)+R*cos(angle/2))^2;
-            rho2Sqrd = rho2Sqrd + (eCoord(j,k)-R*cos(angle/2))^2;
+            rho1Sqrd = rho1Sqrd + (eCoord(j,k)+R*cos(angle))^2;
+            rho2Sqrd = rho2Sqrd + (eCoord(j,k)-R*cos(angle))^2;
         end
         rho = real(sqrt(rhoSqrd)); %rho should be real even without the real()
         rho1 = real(sqrt(rho1Sqrd));
@@ -156,6 +156,13 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         Cp = vecComplex(p,Bdim); %complex p, excluding real lagrange muLbiplier
         Chi0 = complex(zeros(N,1)); %to fix zero mode, alla kuznetsov, dl[7], though not quite
         %%CpNeg = complex(zeros(Bdim,1));
+        
+        if aq.printChoice~='n' && runsCount == aq.printRun && aq.printChoice == 'p' %printing p early if asked for 
+            t = eTVec(Nb,N);
+            x = xVec(Nb,N);
+            save data/phiEarly.mat t x Cp;
+            disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
+        end
 
         for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
             if j~=(N-1)
@@ -284,11 +291,6 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 disp(['lambda potential = ',num2str(potL)]);
                 disp(['epsilon potential = ',num2str(potE)]);
                 disp(['action = ',num2str(action)]);
-            elseif aq.printChoice == 'p'
-                t = eTVec(Nb,N);
-                x = xVec(Nb,N);
-                save data/phiEarly.mat t x Cp;
-                disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
             elseif aq.printChoice == 'v'
                 save data/minusDS.mat minusDS;
                 disp(['printed minusDS in data/minusDS.mat on run ',num2str(runsCount)]);
@@ -298,7 +300,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 [DDSm,DDSn,DDSv] = find(DDS);
                 save data/DDS.mat DDSm DDSn DDSv;
                 disp(['printed DDS in data/DDS.mat on run ',num2str(runsCount)]);
-            else
+            elseif aq.printChoice ~= 'p'
                 disp('early print error');
             end
         end
