@@ -8,7 +8,7 @@ fileNo = input('which data/picOut#.mat file to load? (#) '); %loading periodic i
 data = load(['data/picOut',num2str(fileNo),'.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
-disp(['Lt = T/2 = ', num2str(data.Lt)]); %asking input questions
+disp(['Lb = T/2 = ', num2str(data.Lb)]); %asking input questions
 disp('angle = 0');
 maxTheta = input('input final value of angle (input 0 for no steps) ');
 %%maxLt = input('and input final value of Lt');
