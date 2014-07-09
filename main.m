@@ -23,6 +23,7 @@ Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up m
 p = data.tp; data.tp = [];
 
 Omega = omega(N); %for implementation of initial time boundary conditions
+eOmega = Eomega(N); %comes with an extra power of the energy
 
 for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
     if totalLoops>1
@@ -64,8 +65,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
         
-        action = complex(0); %initializing to zero
-        kinetic = complex(0);
+        kinetic = complex(0);%initializing to zero
         potL = complex(0);
         potE = complex(0);
         clear c3;
@@ -175,7 +175,25 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
         DDS = sparse(DDSm,DDSn,DDSv,2*Tdim+1,2*Tdim+1);
-
+        
+        erg = 0;
+        num = 0;
+        F = 0;
+        if theta~=0
+            for j=0:(N-1)
+                for k=0:(N-1)
+                    num = num + 2*gamma*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma)^2 ...
+                        + 2*gamma*Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma)^2;
+                    erg = erg + 2*gamma*eOmega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma)^2 ...
+                        + 2*gamma*eOmega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma)^2;
+                    F = F - (1-gamma)*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma) ...
+                        + (1+gamma)*Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma);
+                end
+            end
+        end
+        F = F + num*theta + erg*2*Lb + 2*imag(action);
+        F = -lambda*F;
+        
         %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L');
 
         [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
@@ -216,20 +234,23 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         Cp = vecComplex(p,Tdim); 
 
         stopTime = toc;
+        %%%%%%%%%%% need to sort out aq - not defined before
         [Xwait,aq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
     end %closing newton-raphson loop
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%8s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%12s','num','erg','re(action)','im(action)','F');
         fprintf('\n');
     end
-    fprintf('%12g',toc,runsCount,N,Na,Nb,Nc,X,Lb,real(action));
-    fprintf('%12g\n',imag(action));
+    fprintf('%8g',toc,runsCount,N,Na,Nb,Nc,X,Lb);
+    fprintf('%12g',num,erg,real(action),imag(action),F);
+    fprintf('\n');
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,real(action));
-    fprintf(actionOut,'%12g\n',imag(action));
+    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,num,erg,real(action),imag(action),F);
+    fprintf(actionOut,'\n');
     fclose(actionOut);
     
     save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L','aq');%saving phi and minusDS to file

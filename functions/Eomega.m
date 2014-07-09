@@ -1,5 +1,6 @@
-%function to find omega matrix of dl[7] - kuznetsov appendix
-%output is omega matrix
+%function to find a variant of omega matrix of dl[7] - kuznetsov appendix
+%output is variant of omega matrix - this is for evaluating E, there is an
+%extra power of w_k over the usual omega matrix
 %argument is N
 function Xomega = omega(xN)
     global L mass;
@@ -25,7 +26,7 @@ function Xomega = omega(xN)
     for j=1:xN
         for k=1:xN
             for l=1:xN
-                Xomega(j,k) = Xomega(j,k) + xa*D(l,l)*V(j,l)*V(k,l);
+                Xomega(j,k) = Xomega(j,k) + xa*D(l,l)^2*V(j,l)*V(k,l);
             end
         end
     end
