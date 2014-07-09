@@ -46,8 +46,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     perturbImag = zeros(Bdim,1);
     %%pNeg = zeros(2*Bdim,1); %negative eigenvector
     
-    syms x
-    roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
+    %syms x
+    %roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
+    roots = solve('x^3 -v^2*x + epsilon/v/lambda');
     sort (roots); %roots sorted in ascending orderhttps://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
 
     if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
