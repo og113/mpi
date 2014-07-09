@@ -2,11 +2,10 @@
 %up various options if it hasn't
 %ouput is [wait,aq]
 %arguments are: runsCount, runsTest, aq, stopTime, action
-function [Xwait,Xaq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, action)
+function [Xwait] = convergenceQuestions(runsCount, stopTime, action)
     if runsCount > 1000
         disp('over 1000 runs without convergence - stopping n-r loop');
         Xwait = 0;
-        Xaq = aq;
     elseif stopTime > 600
         Xaq = aq;
         disp(['time greater than ',num2str(stopTime),', number of n-r loops: ',num2str(runsCount) ]);
@@ -20,7 +19,6 @@ function [Xwait,Xaq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, a
         tic;
     else
         Xwait = 1;
-        Xaq = aq;
     end
     
 end

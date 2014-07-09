@@ -234,8 +234,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         Cp = vecComplex(p,Tdim); 
 
         stopTime = toc;
-        %%%%%%%%%%% need to sort out aq - not defined before
-        [Xwait,aq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
+        [Xwait] = convergenceQuestions(runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
     end %closing newton-raphson loop
     

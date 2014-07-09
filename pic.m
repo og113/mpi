@@ -343,7 +343,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         %pNeg and pZer plus log(det(DDS)) stuff
 
         stopTime = toc;
-        [Xwait,aq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
+        [Xwait] = convergenceQuestions(runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
     end %closing newton-raphson loop
 
