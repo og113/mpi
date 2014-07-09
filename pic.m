@@ -50,8 +50,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     %roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
     polynomial = [1, 0 , -v^2, epsilon/v/lambda];
     minima = roots(polynomial);
-    sort (minima); %roots sorted in ascending orderhttps://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
-
+    minima = sort(minima); %roots sorted in ascending order https://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
+    
     if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
         perturbReal = v*1e-4*rand(Bdim,1);
         perturbImag = v*1e-4*rand(Bdim,1);
