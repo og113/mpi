@@ -178,7 +178,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         
         erg = 0;
         num = 0;
-        F = 0;
+        W = 0;
         if theta~=0
             for j=0:(N-1)
                 for k=0:(N-1)
@@ -186,13 +186,13 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                         + 2*gamma*Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma)^2;
                     erg = erg + 2*gamma*eOmega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma)^2 ...
                         + 2*gamma*eOmega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma)^2;
-                    F = F - (1-gamma)*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma) ...
+                    W = W - (1-gamma)*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma) ...
                         + (1+gamma)*Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma);
                 end
             end
         end
-        F = F + num*theta + erg*2*Lb + 2*imag(action);
-        F = -lambda*F;
+        W = W + num*theta + erg*2*Lb + 2*imag(action);
+        W = -lambda*W;
         
         %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L');
 
@@ -240,19 +240,19 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     
     if loop==0 %printing to terminal
         fprintf('%8s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
-        fprintf('%12s','num','erg','re(action)','im(action)','F');
+        fprintf('%12s','num','erg','re(action)','im(action)','W');
         fprintf('\n');
     end
     fprintf('%8g',toc,runsCount,N,Na,Nb,Nc,X,Lb);
-    fprintf('%12g',num,erg,real(action),imag(action),F);
+    fprintf('%12g',num,erg,real(action),imag(action),W);
     fprintf('\n');
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,num,erg,real(action),imag(action),F);
+    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,num,erg,real(action),imag(action),W);
     fprintf(actionOut,'\n');
     fclose(actionOut);
     
-    save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L','aq');%saving phi and minusDS to file
+    save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi and minusDS to file
     
     data = load(['data/main',num2str(loop),'.mat']);
     data.tCp = data.Cp;
