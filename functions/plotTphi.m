@@ -9,9 +9,9 @@ function plotTphi(picOutStruct)
     tPhi = picOutStruct.totalPhi;
     x = xVec(xNT,xN);
     t = real(tVec(xNt,xNT,xN)) + imag(tVec(xNt,xNT,xN)-1i*Lt);
-    whos x
-    whos t
-    whos tPhi
+    %whos x
+    %whos t
+    %whos tPhi
     subplot(1,2,1)
     plot3(t,x,real(tPhi),'x')
     xlabel('re(t)-im(t)'), ylabel('x'), zlabel('re(phi)')

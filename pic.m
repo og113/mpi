@@ -14,7 +14,7 @@ aq.printRun = 0;
 aq = askQuestions; %asking questions
 inP = aq.inputP; %just because I write this a lot
 
-global d N Nt Ntm NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
+global d N Nt Ntm NT NtonN NtmonNt L Lt Ltm a b Edim Mdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle;
 parameters(inP); %assigning global variables according to parameters.m
 
@@ -284,9 +284,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 disp(['epsilon potential = ',num2str(potE)]);
                 disp(['action = ',num2str(action)]);
             elseif aq.printChoice == 'p'
-                t = eTVec;
-                x = xVec(Nt);
-                save data/phiEarly.mat t x Cp;
+                save data/phiEarly.mat Cp;
                 disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
             elseif aq.printChoice == 'v'
                 save data/minusDS.mat minusDS;

@@ -7,16 +7,16 @@ function parameters(inputP)
     
     %main global parameters
     d = 2;
-    N = 64;
+    N = 80;
     NtonN = 1;
-    NtmonNt = 2;
-    R = 1e2;
-    mass = 1;
-    lambda = 1e-2;
+    NtmonNt = 1.2;
+    R = 40;
+    mass = 4;
+    lambda = 1/8;
     
     %derived global parameters
     Nt = NtonN*N;
-    Ntm = NtmonNt*Nt;
+    Ntm = floor(NtmonNt*Nt);
     NT = Nt + Ntm;
     Edim = N^(d-1)*Nt;
     Mdim = N^(d-1)*Ntm;
