@@ -4,7 +4,9 @@
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle theta;
 
-fileNo = input('which data/picOut#.mat file to load? (#) '); %loading periodic instanton
+minFileNo = input('which data/picOut#.mat file to load first? (#) '); %loading periodic instanton
+maxFileNo = input('which data/picOut#.mat file to load last? (#) ');
+for fileNo = minFileNo:maxFileNo
 data = load(['data/picOut',num2str(fileNo),'.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
@@ -27,7 +29,7 @@ eOmega = Eomega(N); %comes with an extra power of the energy
 
 for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
     if totalLoops>1
-        theta = theta + loop*maxTheta/(totalLoops - 1);
+        theta = loop*maxTheta/(totalLoops - 1);
     end
     gamma = exp(-theta);
     
@@ -201,8 +203,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                 end
             end
         end
-        W = W + num*theta + erg*2*Lb + 2*imag(action);
+        W = W + num*theta + erg*2*Lb - 2*imag(action);
         W = -lambda*W;
+        
         
         %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
 
@@ -262,10 +265,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     fprintf(actionOut,'\n');
     fclose(actionOut);
     
-    save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R','Lb','L','theta');%saving phi and minusDS to file
+    save( ['data/main',num2str(fileNo),'_',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R','Lb','L','theta');%saving phi and minusDS to file
     
 end%closing parameter loop
+end %closing fileNo loop
 
-data = load(['data/main',num2str(loop),'.mat']);
+data = load(['data/main',num2str(fileNo),'_',num2str(loop),'.mat']);
 data.tCp = data.Cp;
 plotTphi(data);
