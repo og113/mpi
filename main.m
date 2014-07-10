@@ -11,7 +11,7 @@ data.DDS = []; data.minusDS = []; %freeing some memory
 disp(['Lb = T/2 = ', num2str(data.Lb)]); %asking input questions
 disp('angle = 0');
 maxTheta = input('input final value of angle (input 0 for no steps) ');
-%%maxLt = input('and input final value of Lt');
+%%maxLt = input('and input final value of Lb');
 totalLoops = 1;
 if maxTheta~=0
     totalLoops = input('and number of steps to get there ');
@@ -179,7 +179,17 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         erg = 0;
         num = 0;
         W = 0;
-        if theta~=0
+        if theta==0
+            for j=0:(N-1)
+                for k=0:(N-1)
+                    num = num + Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1) ...
+                        - Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2); %the sign here may be wrong - i feel intuitively that it aught to be positive
+                    erg = erg + eOmega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1) ...
+                        - eOmega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2); %likewise with sign
+%extra boundary term vanishes for the periodic instanton (theta = 0)
+                end
+            end
+        else
             for j=0:(N-1)
                 for k=0:(N-1)
                     num = num + 2*gamma*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma)^2 ...
@@ -194,7 +204,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         W = W + num*theta + erg*2*Lb + 2*imag(action);
         W = -lambda*W;
         
-        %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L');
+        %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
 
         [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
         
@@ -239,23 +249,23 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     end %closing newton-raphson loop
     
     if loop==0 %printing to terminal
-        fprintf('%8s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%6s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb','theta'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('%12s','num','erg','re(action)','im(action)','W');
         fprintf('\n');
     end
-    fprintf('%8g',toc,runsCount,N,Na,Nb,Nc,X,Lb);
+    fprintf('%6g',toc,runsCount,N,Na,Nb,Nc,X,Lb,theta);
     fprintf('%12g',num,erg,real(action),imag(action),W);
     fprintf('\n');
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,num,erg,real(action),imag(action),W);
+    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,theta,num,erg,real(action),imag(action),W);
     fprintf(actionOut,'\n');
     fclose(actionOut);
     
-    save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L');%saving phi and minusDS to file
-    
-    data = load(['data/main',num2str(loop),'.mat']);
-    data.tCp = data.Cp;
-    plotTphi(data);
+    save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R','Lb','L','theta');%saving phi and minusDS to file
     
 end%closing parameter loop
+
+data = load(['data/main',num2str(loop),'.mat']);
+data.tCp = data.Cp;
+plotTphi(data);
