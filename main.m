@@ -64,8 +64,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
         
-        action = complex(0); %initializing to zero
-        kinetic = complex(0);
+        kinetic = complex(0);%initializing to zero
         potL = complex(0);
         potE = complex(0);
         clear c3;
