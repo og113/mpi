@@ -7,9 +7,9 @@ function parameters(inputP)
     
     %main global parameters
     d = 2;
-    N = 64;
-    Na = 80;
-    Nb = 64;
+    N = 80;
+    Na = 100;
+    Nb = 80;
     Nc = 2;
     R = 10;
     mass = 3;
