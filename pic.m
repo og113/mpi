@@ -132,7 +132,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     p(Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
     if inP == 'p' %fixing input periodic instanton to have zero time derivative at time boundaries
-        open = 0; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
+        open = 0.5; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
             p(2*j*Nb+1) = open*p(2*j*Nb+1) + (1-open)*p(2*(j*Nb+1)+1);%intiial time real
             p(2*(j*Nb+1)+1) = open*p(2*j*Nb+1) + (1-open)*p(2*(j*Nb+1)+1);
@@ -317,7 +317,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
 
         tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
-        [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        x0 = rand(2*Bdim+1,1);       
+        [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up,x0); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([deLba,flag] -> [deLba,flag,relres])
             if flag == 1
                 disp('linear solver interated maxit times but did not converge!');
@@ -342,8 +343,12 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         fprintf('%12g\n',iter);
         fprintf('%12s','relres = ');
         fprintf('%12g\n',relres);
-
-        p = p + delta(orderCol)'; %p -> p'
+        
+        if size(delta,1)==1
+            p = p + delta(orderCol)'; %p -> p'
+        else
+            p = p + delta(orderCol);
+        end
 
         %pNeg and pZer plus log(det(DDS)) stuff
 
