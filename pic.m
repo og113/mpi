@@ -309,16 +309,16 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
 
         [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
         
-        setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
-        setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
-        setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
-        setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
-        [Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+        %setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
+        %setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        %setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
+        %setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
+        %[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
 
         tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
         deLba = zeros(2*Bdim+1,1);
-        [deLba(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        [deLba(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit);%,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([deLba,flag] -> [deLba,flag,relres])
             if flag == 1
                 disp('linear solver interated maxit times but did not converge!');
