@@ -3,7 +3,7 @@
 %direction
 %arguments are locNum, direction, sign and Nt
 function Xneigh = neigh(locNum, direction, sign, xNt)
-    global d N;
+    global N;
     Xneigh = -1; %//this is the result if there are no neighbours for the given values of the argument
     if direction==0
         if sign==1 && intCoord(locNum,0,xNt)~=(xNt-1)
