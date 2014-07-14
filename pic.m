@@ -46,10 +46,12 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     perturbImag = zeros(Bdim,1);
     %%pNeg = zeros(2*Bdim,1); %negative eigenvector
     
-    syms x
-    roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
-    sort (roots); %roots sorted in ascending orderhttps://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
-
+    %syms x
+    %roots = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
+    polynomial = [1, 0 , -v^2, epsilon/v/lambda];
+    minima = roots(polynomial);
+    minima = sort(minima); %roots sorted in ascending order https://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
+    
     if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
         perturbReal = v*1e-4*rand(Bdim,1);
         perturbImag = v*1e-4*rand(Bdim,1);
@@ -91,23 +93,23 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             disp(['X = R*mass is too small. not possible to give thinwall input. it should be less that ',num2str(alpha)]);
         else
             if inP =='t'
-                p(2*j+1) = roots(1);
+                p(2*j+1) = minima(1);
             elseif inP == 'f'
-                p(2*j+1) = roots(3);
+                p(2*j+1) = minima(3);
             elseif inP == 'b'
                 if rho<(R-alpha/mass)
-                    p(2*j+1) = roots(1);
+                    p(2*j+1) = minima(1);
                 elseif rho>(R+alpha/mass)
-                    p(2*j+1) = roots(3);
+                    p(2*j+1) = minima(3);
                 else
                     p(2*j+1) = v*tanh(mass*(rho-R)/2);
                     %%pNeg(2*j+1) = v/cosh(mass*(rho-R)/2)^2;
                 end
             elseif inP == 'p'
                 if rho1<(R-alpha/mass) && rho2<(R-alpha/mass)
-                    p(2*j+1) = roots(1);
+                    p(2*j+1) = minima(1);
                 elseif rho1>(R+alpha/mass) || rho2>(R+alpha/mass)
-                    p(2*j+1) = roots(3);
+                    p(2*j+1) = minima(3);
                 elseif real(eCoord(j,1))>0 %explicitly 2d here, note that the coord should be real
                     p(2*j+1) = v*tanh(mass*(rho1-R)/2);
                     %%pNeg(2*j+1) = v/cosh(mass*(rho1-R)/2)^2;
@@ -115,7 +117,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     p(2*j+1) = v*tanh(mass*(rho2-R)/2);
                     %%pNeg(2*j+1) = v/cosh(mass*(rho2-R)/2)^2;
                 else
-                    p(2*j+1) = roots(1); %if eCoord(j,1) == 0
+                    p(2*j+1) = minima(1); %if eCoord(j,1) == 0
                 end
             end
             if aq.perturbResponse == 'r' || aq.perturbResponse =='b'
@@ -185,9 +187,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
-        
-        action = complex(0); %initializing to zero
-        kinetic = complex(0);
+         
+        kinetic = complex(0); %initializing to zero
         potL = complex(0);
         potE = complex(0);
         clear c3;
@@ -344,7 +345,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         %pNeg and pZer plus log(det(DDS)) stuff
 
         stopTime = toc;
-        [Xwait,aq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
+        [Xwait] = convergenceQuestions(runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
     end %closing newton-raphson loop
 
@@ -462,7 +463,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     fprintf(actionOut,'%12g\n',imag(action));
     fclose(actionOut);
     
-    save( ['data/picOut',num2str(loop),'.mat'], 'tCp', 'tp', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R', 'aq','L','La','Lb','Lc');%saving phi, DDS and minusDS to file
+    save( ['data/picOut',num2str(loop),'.mat'], 'tCp', 'tp', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');%saving phi, DDS and minusDS to file
     
 end%closing parameter loop
 

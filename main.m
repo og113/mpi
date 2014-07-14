@@ -4,14 +4,16 @@
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle theta;
 
-fileNo = input('which data/picOut#.mat file to load? (#) '); %loading periodic instanton
+minFileNo = input('which data/picOut#.mat file to load first? (#) '); %loading periodic instanton
+maxFileNo = input('which data/picOut#.mat file to load last? (#) ');
+for fileNo = minFileNo:maxFileNo
 data = load(['data/picOut',num2str(fileNo),'.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
 disp(['Lb = T/2 = ', num2str(data.Lb)]); %asking input questions
 disp('angle = 0');
 maxTheta = input('input final value of angle (input 0 for no steps) ');
-%%maxLt = input('and input final value of Lt');
+%%maxLt = input('and input final value of Lb');
 totalLoops = 1;
 if maxTheta~=0
     totalLoops = input('and number of steps to get there ');
@@ -23,10 +25,11 @@ Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up m
 p = data.tp; data.tp = [];
 
 Omega = omega(N); %for implementation of initial time boundary conditions
+eOmega = Eomega(N); %comes with an extra power of the energy
 
 for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
     if totalLoops>1
-        theta = theta + loop*maxTheta/(totalLoops - 1);
+        theta = loop*maxTheta/(totalLoops - 1);
     end
     gamma = exp(-theta);
     
@@ -83,8 +86,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             elseif x~=(N-1) %avoiding using neigh and modulo as its slow
                 kinetic = kinetic - siteMeasure*(Cp(j+1-NT*(N-1))-Cp(j+1))^2/a^2/2;
             end
-            if t==(NT-1)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% boundary conditions
+            if t==(NT-1)
                 DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part of field at final time boundary
                 DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+2; DDSv(c3) = 1; %zero imaginary part of time derivative at final time boundary - with other condition
                 DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = real(siteMeasure*Chi0(x+1)); %zero mode lagrange constraint
@@ -112,10 +115,10 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
                     
                     for k=0:(N-1)
-                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*N+1; DDSv(c3) = real(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
-                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*N+2; DDSv(c3) = real(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
-                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*N+1; DDSv(c3) = imag(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
-                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*N+2; DDSv(c3) = imag(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
+                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+1; DDSv(c3) = real(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
+                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+2; DDSv(c3) = real(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
+                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+1; DDSv(c3) = imag(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
+                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+2; DDSv(c3) = imag(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
                     end
                 elseif t==0
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+2; DDSv(c3) = 1; %zero imaginary time derivative - with below condition
@@ -174,8 +177,37 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
         DDS = sparse(DDSm,DDSn,DDSv,2*Tdim+1,2*Tdim+1);
-
-        %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L');
+        
+        erg = 0;
+        num = 0;
+        W = 0;
+        if theta==0
+            for j=0:(N-1)
+                for k=0:(N-1)
+                    num = num + Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1) ...
+                        - Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2); %the sign here may be wrong - i feel intuitively that it aught to be positive
+                    erg = erg + eOmega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1) ...
+                        - eOmega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2); %likewise with sign
+%extra boundary term vanishes for the periodic instanton (theta = 0)
+                end
+            end
+        else
+            for j=0:(N-1)
+                for k=0:(N-1)
+                    num = num + 2*gamma*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma)^2 ...
+                        + 2*gamma*Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma)^2;
+                    erg = erg + 2*gamma*eOmega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma)^2 ...
+                        + 2*gamma*eOmega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma)^2;
+                    W = W - (1-gamma)*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma) ...
+                        + (1+gamma)*Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma);
+                end
+            end
+        end
+        W = W + num*theta + erg*2*Lb - 2*imag(action);
+        W = -lambda*W;
+        
+        
+        %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
 
         [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
         
@@ -215,26 +247,29 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         Cp = vecComplex(p,Tdim); 
 
         stopTime = toc;
-        [Xwait,aq] = convergenceQuestions(runsCount, runsTest, aq, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
+        [Xwait] = convergenceQuestions(runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
     end %closing newton-raphson loop
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%6s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb','theta'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%12s','num','erg','re(action)','im(action)','W');
         fprintf('\n');
     end
-    fprintf('%12g',toc,runsCount,N,Na,Nb,Nc,X,Lb,real(action));
-    fprintf('%12g\n',imag(action));
+    fprintf('%6g',toc,runsCount,N,Na,Nb,Nc,X,Lb,theta);
+    fprintf('%12g',num,erg,real(action),imag(action),W);
+    fprintf('\n');
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,real(action));
-    fprintf(actionOut,'%12g\n',imag(action));
+    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,theta,num,erg,real(action),imag(action),W);
+    fprintf(actionOut,'\n');
     fclose(actionOut);
     
-    save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'aq','Lt','L','aq');%saving phi and minusDS to file
-    
-    data = load(['data/main',num2str(loop),'.mat']);
-    data.tCp = data.Cp;
-    plotTphi(data);
+    save( ['data/main',num2str(fileNo),'_',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R','Lb','L','theta');%saving phi and minusDS to file
     
 end%closing parameter loop
+end %closing fileNo loop
+
+data = load(['data/main',num2str(fileNo),'_',num2str(loop),'.mat']);
+data.tCp = data.Cp;
+plotTphi(data);
