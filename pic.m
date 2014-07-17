@@ -132,16 +132,16 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     p(Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
     if inP == 'p' %fixing input periodic instanton to have zero time derivative at time boundaries
-        open = 0; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
+        open = 0.5; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
-            p(2*j*Nb+1) = open*p(2*j*Nb+1) + (1-open)*p(2*(j*Nb+1)+1);%intiial time real
-            p(2*(j*Nb+1)+1) = open*p(2*j*Nb+1) + (1-open)*p(2*(j*Nb+1)+1);
-            p(2*j*Nb+2) = open*p(2*j*Nb+2) + (1-open)*p(2*(j*Nb+1)+2);%initial time imag
-            p(2*(j*Nb+1)+2) = open*p(2*j*Nb+2) + (1-open)*p(2*(j*Nb+1)+2);
-            p(2*((j+1)*Nb-1)) = open*p(2*((j+1)*Nb)) + (1-open)*p(2*((j+1)*Nb-1));%final time real
-            p(2*((j+1)*Nb)) = open*p(2*((j+1)*Nb)) + (1-open)*p(2*((j+1)*Nb-1));
-            p(2*((j+1)*Nb-2)+2) = open*p(2*((j+1)*Nb-1)+2) + (1-open)*p(2*((j+1)*Nb-2)+2);%final time imag
-            p(2*((j+1)*Nb-1)+2) = open*p(2*((j+1)*Nb-1)+2) + (1-open)*p(2*((j+1)*Nb-2)+2);
+            p(2*j*Nb+1) = (1.0-open)*p(2*j*Nb+1) + open*p(2*(j*Nb+1)+1);%intiial time real
+            p(2*(j*Nb+1)+1) = p(2*j*Nb+1);
+            p(2*j*Nb+2) = (1.0-open)*p(2*j*Nb+2) + open*p(2*(j*Nb+1)+2);%initial time imag
+            p(2*(j*Nb+1)+2) = p(2*j*Nb+2);
+            p(2*((j+1)*Nb-1)+1) = open*p(2*((j+1)*Nb-2)+1) + (1.0-open)*p(2*((j+1)*Nb-1)+1);%final time real
+            p(2*((j+1)*Nb-2)+1) = p(2*((j+1)*Nb-1)+1);
+            p(2*((j+1)*Nb-2)+2) = open*p(2*((j+1)*Nb-1)+2) + (1.0-open)*p(2*((j+1)*Nb-2)+2);%final time imag
+            p(2*((j+1)*Nb-1)+2) = p(2*((j+1)*Nb-2)+2);
         end
     end
     

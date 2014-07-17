@@ -7,12 +7,12 @@ function parameters(inputP)
     
     %main global parameters
     d = 2;
-    N = 64;
-    Na = 64;
-    Nb = 64;
+    N = 80;
+    Na = 96;
+    Nb = 80;
     Nc = 2;
-    R = 10;
-    mass = 3;
+    R = 32;
+    mass = 1;
     lambda = 1/10;
     theta = 0;
     
@@ -35,7 +35,7 @@ function parameters(inputP)
         La = (Na-1)*b;
         Lc = (Nc-1)*b;
     elseif inputP=='p'
-        Lb = 0.5*R;
+        Lb = 0.6*R;
         angle = asin(Lb/R);
         L = 3*Lb*tan(angle);
         a = L/(N-1);
