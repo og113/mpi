@@ -1,7 +1,7 @@
 %short function to plot real part of phi in euclidean domain
 %arguments are Cp Nt and N
 function plotPhi(Cp,xNt,xN)
-    x = xVec(xNt,xN);
+    x = real(xVec(xNt,xN));
     t = imag(eTVec(xNt,xN));
     subplot(1,2,1)
     plot3(t,x,real(Cp),'x')
