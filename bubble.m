@@ -25,6 +25,9 @@ end
 global d N Nt NtonN L Lt a b Edim; %defining global variables
 global R X lambda mass v epsilon;
 parameters(inP); %assigning global variables according to parameters.m
+global Nt Edim;
+Nt = Nb;
+Edim = Bdim;
 
 tic; %starting the clock
 
@@ -123,18 +126,20 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         for j=0:(Edim-1)
             t = intCoord(j,0,Nt);
             x = intCoord(j,1,Nt);
-            siteMeasure = a*rDt1(j); %for sites in time
-            linkMeasure = -a*b; %for links in time
-            dtj = rdt(j);
-            
-            potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
-            potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
-            if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
-                kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
-            elseif x==(N-1) %avoinding using neigh and modulo as its slow
-                kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
-            end
             if t==(Nt-1)
+                siteMeasure = -a*b/2.0; %for sites in time
+                linkMeasure = -a*b; %for links in time
+                dtj = -b/2.0;
+
+                potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
+                potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
+                if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
+                    kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+                elseif x==(N-1) %avoinding using neigh and modulo as its slow
+                    kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+                end
+                
+
                 if inP=='b' %boundary conditions
                     DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1/b; %zero time derivative
                     DDSm(c3) = j+1; DDSn(c3) = j; DDSv(c3) = 1/b;
@@ -144,22 +149,42 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                 DDSm(c3) = j+1; DDSn(c3) = Edim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
                 minusDS(j+1) = -a*p(Edim+1)*Chi0(x+1); %%%%%%%%%%%%%%%%%%
             else
-                kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
                 if t==0
+                    siteMeasure = -a*b/2.0; %for sites in time
+                    linkMeasure = -a*b; %for links in time
+                    dtj = -b/2.0;
+
+                    potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
+                    potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
+                    if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
+                        kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+                    elseif x==(N-1) %avoinding using neigh and modulo as its slow
+                        kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+                    end
+                    kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
+                    
                     DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1; %zero change at boundary
                 else
-                    dtjm = rdt(j-1);
+                    siteMeasure = -a*b; %for sites in time
+                    linkMeasure = -a*b; %for links in time
+                    dtj = -b;
+
+                    potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
+                    potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
+                    if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
+                        kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+                    elseif x==(N-1) %avoinding using neigh and modulo as its slow
+                        kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+                    end
+                    kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2; 
+                    
                     for k=0:(2*d-1)
                         sign = (-1)^k;
                         %%deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
                         direc = floor(k/2);
                         if direc == 0
-                            dtd = dtj;
-                            if sign==-1
-                                dtd = dtjm; 
-                            end
-                            minusDS(j+1) = minusDS(j+1) + a*p(j+sign+1)/dtd;
-                            DDSm(c3) = j+1; DDSn(c3) = (j+sign)+1; DDSv(c3) = -a/dtd;
+                            minusDS(j+1) = minusDS(j+1) + a*p(j+sign+1)/dtj;
+                            DDSm(c3) = j+1; DDSn(c3) = (j+sign)+1; DDSv(c3) = -a/dtj;
                         else
                             neighb = neigh(j,direc,sign,Nt);
                             minusDS(j+1) = minusDS(j+1) + siteMeasure*p(neighb+1)/a^2; %note Dt(j) = Dt(j+Nt) etc.
