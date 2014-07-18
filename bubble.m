@@ -22,12 +22,9 @@ else
    printRun = -1; 
 end
 
-global d N Nt NtonN L Lt a b Edim Nb Bdim Lb; %defining global variables
+global d N NtonN L a b Bdim Nb Bdim Lb; %defining global variables
 global R X lambda mass v epsilon;
 parameters(inP); %assigning global variables according to parameters.m
-Nt = Nb;
-Edim = Bdim;
-Lt = Lb;
 
 tic; %starting the clock
 
@@ -42,7 +39,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
-    alpha = 25; %determines range over which tanh(x) is used
+    alpha = 8; %determines range over which tanh(x) is used
     action = 2;
     
     actionLast = 1; %defining some quantities to stop Newton-Raphson loop when action stops varying
@@ -51,22 +48,22 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     closeness = 1e-4;
     minRuns = 6;
     
-    p = zeros(Edim+1,1); %phi, in the euclidean domain
-    pNeg = zeros(2*Edim,1); %negative eigenvector
-    pZero = zeros(2*Edim,1); %zero eigenvector
+    p = zeros(Bdim+1,1); %phi, in the euclidean domain
+    pNeg = zeros(2*Bdim,1); %negative eigenvector
+    pZero = zeros(2*Bdim,1); %zero eigenvector
     
     syms y
     Roots = vpasolve(y^3 -v^2*y + epsilon/v/lambda,y); %solving V'(p)=0
     sort (Roots); %Roots sorted in ascending order
     
-    for j=0:(Edim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
+    for j=0:(Bdim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
         rhoSqrd = 0;
         for k=0:(d-1)
-            rhoSqrd = rhoSqrd + reCoord(j,k,Nt)^2;
+            rhoSqrd = rhoSqrd + reCoord(j,k,Nb)^2;
         end
         rho = sqrt(rhoSqrd);
         if R<alpha/mass
-            disp(['X = R*mass is too small. not possible to give thinwall input. it should be less that ',num2str(alpha)]);
+            disp(['X = R*mass is too small. not possible to give thinwall input. it should be more that ',num2str(alpha)]);
         else
             if inP =='t'
                 p(j+1) = Roots(1);
@@ -85,7 +82,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         end
     end
     
-    p(Edim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
+    p(Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
     %%if inP == 'b' || inP == 'p' %fixing norm of pNeg
         %%pNeg = pNeg/norm(pNeg);
@@ -97,23 +94,19 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         runsCount = runsCount + 1;
         actionLast = action;
         
-        minusDS = zeros(Edim+1,1); %-dS/d(p)
+        minusDS = zeros(Bdim+1,1); %-dS/d(p)
         Chi0 = zeros(N,1); %to fix zero mode, alla kuznetsov, dl[7], though not quite
 
-        for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nt-1)
-            if j~=(N-1) && j~=0
-                Chi0(j+1) = (p((j+2)*Nt)-p(j*Nt))/2/a; %shouldn't be forward or backward derivative as this will move boundary phi in a direction.
-            elseif j==(N-1)
-                Chi0(j+1) = (p(Nt)-p((N-1)*Nt))/2/a;
-            else
-                Chi0(j+1) = (p(2*Nt)-p(N*Nt))/2/a;
-            end
+        for j=1:(N-2) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
+            Chi0(j+1) = p((j+2)*Nb)-p(j*Nb); %shouldn't be forward or backward derivative as this will move boundary phi in a direction.
         end
+        Chi0(N) = p(Nb)-p((N-1)*Nb);
+        Chi0(1) = p(2*Nb)-p(N*Nb);
         if norm(Chi0)~=0
             Chi0 = Chi0/norm(Chi0);
         end
         
-        nonz = 5*(Edim-2) + 5*N; %number of nonzero elements of DDS
+        nonz = 5*(Bdim-2) + 5*N; %number of nonzero elements of DDS
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
@@ -123,20 +116,20 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         potE = 0;
         clear c3;
         
-        for j=0:(Edim-1)
-            t = intCoord(j,0,Nt);
-            x = intCoord(j,1,Nt);
+        for j=0:(Bdim-1)
+            t = intCoord(j,0,Nb);
+            x = intCoord(j,1,Nb);
 
-            if t==(Nt-1)
+            if t==(Nb-1)
                 siteMeasure = -a*b/2.0; %for sites in time
                 linkMeasure = -a*b; %for links in time
             
                 potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
                 potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
             if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
-                kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+                kinetic = kinetic + siteMeasure*(p(j+Nb+1)-p(j+1))^2/a^2/2;
             elseif x==(N-1) %avoinding using neigh and modulo as its slow
-                kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+                kinetic = kinetic + siteMeasure*(p(j+1-Nb*(N-1))-p(j+1))^2/a^2/2;
             end
                 if inP=='b' %boundary conditions
                     DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1/b; %zero time derivative
@@ -144,8 +137,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                 elseif inP=='t' || inP=='f'
                     DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1; %zero change at boundary
                 end
-                DDSm(c3) = j+1; DDSn(c3) = Edim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
-                minusDS(j+1) = -a*p(Edim+1)*Chi0(x+1); %%%%%%%%%%%%%%%%%%
+                DDSm(c3) = j+1; DDSn(c3) = Bdim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
+                minusDS(j+1) = -a*p(Bdim+1)*Chi0(x+1); %%%%%%%%%%%%%%%%%%
             else
                 if t==0
                     siteMeasure = -a*b/2.0; %for sites in time
@@ -155,9 +148,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
                     potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
                     if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
-                        kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+                        kinetic = kinetic + siteMeasure*(p(j+Nb+1)-p(j+1))^2/a^2/2;
                     elseif x==(N-1) %avoinding using neigh and modulo as its slow
-                        kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+                        kinetic = kinetic + siteMeasure*(p(j+1-Nb*(N-1))-p(j+1))^2/a^2/2;
                     end
                     kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
                     
@@ -170,9 +163,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
                     potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
                     if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
-                        kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+                        kinetic = kinetic + siteMeasure*(p(j+Nb+1)-p(j+1))^2/a^2/2;
                     elseif x==(N-1) %avoinding using neigh and modulo as its slow
-                        kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+                        kinetic = kinetic + siteMeasure*(p(j+1-Nb*(N-1))-p(j+1))^2/a^2/2;
                     end
                     kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
                     
@@ -184,8 +177,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                             minusDS(j+1) = minusDS(j+1) + a*p(j+sign+1)/dtj;
                             DDSm(c3) = j+1; DDSn(c3) = (j+sign)+1; DDSv(c3) = -a/dtj;
                         else
-                            neighb = neigh(j,direc,sign,Nt);
-                            minusDS(j+1) = minusDS(j+1) + siteMeasure*p(neighb+1)/a^2; %note Dt(j) = Dt(j+Nt) etc.
+                            neighb = neigh(j,direc,sign,Nb);
+                            minusDS(j+1) = minusDS(j+1) + siteMeasure*p(neighb+1)/a^2; %note Dt(j) = Dt(j+Nb) etc.
                             DDSm(c3) = j+1; DDSn(c3) = neighb+1; DDSv(c3) = -siteMeasure/a^2;
                         end
                     end                    
@@ -196,8 +189,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             end
         end
         for j=0:(N-1) %adding last row, with lagrange multiplier terms
-            minusDS(Edim+1) = minusDS(Edim+1) - a*Chi0(j+1)*p((j+1)*Nt);        
-            DDSm(c3) = Edim+1; DDSn(c3) = (j+1)*Nt; DDSv(c3) = a*Chi0(j+1); %at t=Nt-1                        
+            minusDS(Bdim+1) = minusDS(Bdim+1) - a*Chi0(j+1)*p((j+1)*Nb);        
+            DDSm(c3) = Bdim+1; DDSn(c3) = (j+1)*Nb; DDSv(c3) = a*Chi0(j+1); %at t=Nb-1                        
         end
         clear c3; %returning persistent output of c3 to 1
         kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
@@ -205,7 +198,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
-        DDS = sparse(DDSm,DDSn,DDSv,Edim+1,Edim+1);
+        DDS = sparse(DDSm,DDSn,DDSv,Bdim+1,Bdim+1);
 
         if printChoice~='n' && runsCount == printRun %printing early if asked for
             if printChoice == 'a'
@@ -230,12 +223,13 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         end
         
         small = norm(minusDS);
-        cutoff = 1e-6;
+        smaller = small/(2*Bdim+1);
+        cutoff = 1e-5;
         normed = 0;
-        if small < cutoff
+        if smaller < cutoff
             disp(['small = ',num2str(small)]);
             break
-        elseif small < 1.0
+        else
             normed = 1;
             minusDS = minusDS/small;
             DDS = DDS/small;
@@ -252,7 +246,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
 
         tol = 1e-8; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
-        delta = zeros(Edim+1);
+        delta = zeros(Bdim+1);
         %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         [delta,flag,relres,iter,resvec] = lsqr(DDS,minusDS,tol,maxit,Lo,Up);
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
@@ -281,7 +275,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         fprintf('%12g\n',relres);
         
         if normed
-            delta = delta*small;
             minusDS = minusDS*small;
             DDS = DDS*small;
         end

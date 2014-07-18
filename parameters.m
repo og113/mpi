@@ -11,7 +11,7 @@ function parameters(inputP)
     Na = 96;
     Nb = 80;
     Nc = 2;
-    R = 32;
+    R = 20;
     mass = 1;
     lambda = 1/10;
     theta = 0;

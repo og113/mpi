@@ -1,13 +1,11 @@
 %short function to plot phi output of script bubble
-%argument is p
-function plotBubble(p)
+%arguments are p and N
+function plotBubble(p,XN)
     XEdim = length(p)-1;
-    XNt = sqrt(XEdim);
+    p(XEdim+1) = [];
+    XNt = XEdim/XN;
     t = rtVec(XEdim,XNt);
-    x = xVec(XNt,XNt);
-    if length(p)==(XEdim+1)
-        p(XEdim+1) = [];
-    end
+    x = xVec(XNt,XN);
     plot3(t,x,p,'x')
     xlabel('im(t)'), ylabel('x'), zlabel('phi)')
 end

@@ -157,7 +157,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         
         minusDS = zeros(2*Bdim+1,1); %-dS/d(p)
         Cp = vecComplex(p,Bdim); %complex p, excluding real lagrange muLbiplier
-        Chi0 = complex(zeros(N,1)); %to fix zero mode, alla kuznetsov, dl[7], though not quite
+        Chi0 = zeros(N,1); %to fix zero mode, alla kuznetsov, dl[7], though not quite
         %%CpNeg = complex(zeros(Bdim,1));
         
         if aq.printChoice~='n' && runsCount == aq.printRun && aq.printChoice == 'p' %printing p early if asked for 
@@ -169,10 +169,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
 
         for j=1:(N-2) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
             pos = (j+1)*Nb-1;
-            Chi0(j+1) = p(2*(pos+Nb)+1)+1i*p(2*(pos+Nb)+1)-p(2*(pos-Nb)+1)-1i*p(2*(pos-Nb)+1); %%note only use real derivative - this is a fudge due to initial input
+            Chi0(j+1) = p(2*(pos+Nb)+1)-p(2*(pos-Nb)+1);
         end
-        Chi0(1) = p(2*(2*Nb-1)+1)+1i*p(2*(2*Nb-1)+1)-p(2*(N*Nb-1)+1)-1i*p(2*(N*Nb-1)+1);
-        Chi0(N) = p(2*(Nb-1)+1)+1i*p(2*(Nb-1)+1)-p(2*((N-1)*Nb-1)+1)-1i*p(2*((N-1)*Nb-1)+1);
+        Chi0(1) = p(2*(2*Nb-1)+1)-p(2*(N*Nb-1)+1);
+        Chi0(N) = p(2*(Nb-1)+1)-p(2*((N-1)*Nb-1)+1);
         Chi0 = Chi0/norm(Chi0);
         
         nonz = 0; %number of nonzero elements of DDS
@@ -216,10 +216,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1; %zero change at boundary
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
                 end
-                DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = real(1i*a*Chi0(x+1)); %zero mode lagrange constraint
-                DDSm(c3) = 2*j+2; DDSn(c3) = 2*Bdim+1; DDSv(c3) = imag(1i*a*Chi0(x+1)); %the constraint is real but its derivative wrt phi may be complex
-                minusDS(2*j+1) = - real(1i*a*Chi0(j+1)*p(2*Bdim+1));
-                minusDS(2*j+2) = - imag(1i*a*Chi0(j+1)*p(2*Bdim+1));
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
+                minusDS(2*j+1) = - a*Chi0(x+1)*p(2*Bdim+1);
             else
                 kinetic = kinetic + a*(Cp(j+2) - Cp(j+1))^2/dtj/2;
                 if t==0
@@ -275,10 +273,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             end
         end
         for j=0:(N-1) %adding last row, with lagrange muLbiplier terms
-            minusDS(2*Bdim+1) = - real(1i*a*Chi0(j+1)*Cp((j+1)*Nb));
+            minusDS(2*Bdim+1) = minusDS(2*Bdim+1) - a*Chi0(j+1)*p(2*((j+1)*Nb-1)+1);
             
-            DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+1; DDSv(c3) = real(a*Chi0(j+1)); %at t=Nb-1
-            DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+2; DDSv(c3) = -imag(a*Chi0(j+1));                          
+            DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+1; DDSv(c3) = a*Chi0(j+1); %at t=Nb-1                          
         end
         clear c3; %returning persistent output of c3 to 1
         kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
@@ -309,11 +306,13 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         end
         
         small = norm(minusDS);
+        smaller = small/(2*Bdim+1);
         cutoff = 1e-5;
         normed = 0;
-        if small < cutoff
-           break
-        elseif small < 1.0
+        if smaller < cutoff
+           Xwait = 0;
+           break;
+        else
             normed = 1;
             minusDS = minusDS/small;
             DDS = DDS/small;
@@ -357,7 +356,6 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         fprintf('%12g\n',relres);
         
         if normed
-            delta = delta*small;
             minusDS = minusDS*small;
             DDS = DDS*small;
         end
