@@ -307,7 +307,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         
         small = norm(minusDS);
         smaller = small/(2*Bdim+1);
-        cutoff = 1e-5;
+        cutoff = 1e-6;
         normed = 0;
         if smaller < cutoff
            Xwait = 0;
@@ -361,9 +361,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         end
         
         if size(delta,1)==1
-            p = p + delta(orderCol)'; %p -> p'
+            p = p + delta'; %p -> p'
         else
-            p = p + delta(orderCol);
+            p = p + delta;
         end
 
         %pNeg and pZer plus log(det(DDS)) stuff

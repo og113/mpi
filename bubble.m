@@ -154,7 +154,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     end
                     kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
                     
-                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1; %zero change at boundary
+                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = 1; %zero change at boundary
                 else
                     siteMeasure = -a*b; %for sites in time
                     linkMeasure = -a*b; %for links in time
@@ -224,7 +224,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         
         small = norm(minusDS);
         smaller = small/(2*Bdim+1);
-        cutoff = 1e-5;
+        cutoff = 1e-6;
         normed = 0;
         if smaller < cutoff
             disp(['small = ',num2str(small)]);
@@ -237,18 +237,21 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         end
 
         %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        orderRow = dmperm(DDS);
         
         setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
         setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
         setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
         setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
-        [Lo,Up] = ilu(DDS,setup);%[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+        %[Lo,Up] = ilu(DDS,setup);%[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+        [Lo,Up] = ilu(DDS(orderRow,:),setup);
 
         tol = 1e-8; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
         delta = zeros(Bdim+1);
         %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
-        [delta,flag,relres,iter,resvec] = lsqr(DDS,minusDS,tol,maxit,Lo,Up);
+        %[delta,flag,relres,iter,resvec] = lsqr(DDS,minusDS,tol,maxit,Lo,Up);
+        [delta,flag,relres,iter,resvec] = lsqr(DDS(orderRow,:),minusDS(orderRow),tol,maxit,Lo,Up);
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
             if flag == 1
                 disp('linear solver interated maxit times but did not converge!');
@@ -279,8 +282,12 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             DDS = DDS*small;
         end
 
-        %p = p + delta(orderCol)'; %p -> p'
-        p = p + delta; %p -> p'
+        
+        if size(delta,1)==1
+            p = p + delta'; %p -> p'
+        else
+            p = p + delta;
+        end
 
         %pNeg and pZer plus log(det(DDS)) stuff
 
