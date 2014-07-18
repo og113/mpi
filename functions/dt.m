@@ -6,6 +6,6 @@ function Xbdt = bdt(locNum)
     if intCoord(locNum,0,Nb)==(Nb-1)
         Xbdt=0;
     else
-        Xbdt = eCoord(locNum+1,0) - eCoord(locNum-1,0);
+        Xbdt = eCoord(locNum+1,0) - eCoord(locNum,0);
     end
 end

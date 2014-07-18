@@ -219,7 +219,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
 
         tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
-        delta = zeros(2*Tdim+1,1);
         [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
             if flag == 1
@@ -242,7 +241,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             end
         end
 
-        p = p + delta(orderCol); %p -> p'
+        p = p + delta(orderCol)'; %p -> p'
         
         Cp = vecComplex(p,Tdim); 
 
@@ -252,11 +251,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     end %closing newton-raphson loop
     
     if loop==0 %printing to terminal
-        fprintf('%6s','time', 'runs','N','Na','Nb', 'Nc', 'X','Lb','theta'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%6s','time', 'runs','N','Na','Nb', 'Nc', 'mass','lambda','R','Lb','theta'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('%12s','num','erg','re(action)','im(action)','W');
         fprintf('\n');
     end
-    fprintf('%6g',toc,runsCount,N,Na,Nb,Nc,X,Lb,theta);
+    fprintf('%6g',toc,runsCount,N,Na,Nb,Nc,mass,lambda,R,Lb,theta);
     fprintf('%12g',num,erg,real(action),imag(action),W);
     fprintf('\n');
     

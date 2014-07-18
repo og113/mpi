@@ -22,7 +22,7 @@ else
    printRun = -1; 
 end
 
-global d N Nt NtonN L Lt a b Edim Nb Bdim Tb; %defining global variables
+global d N Nt NtonN L Lt a b Edim Nb Bdim Lb; %defining global variables
 global R X lambda mass v epsilon;
 parameters(inP); %assigning global variables according to parameters.m
 Nt = Nb;
@@ -126,7 +126,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         for j=0:(Edim-1)
             t = intCoord(j,0,Nt);
             x = intCoord(j,1,Nt);
-            
+
             if t==(Nt-1)
                 siteMeasure = -a*b/2.0; %for sites in time
                 linkMeasure = -a*b; %for links in time
@@ -163,7 +163,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     
                     DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1; %zero change at boundary
                 else
-                    siteMeasure = -a*b/2.0; %for sites in time
+                    siteMeasure = -a*b; %for sites in time
                     linkMeasure = -a*b; %for links in time
                     dtj = -b;
 
@@ -233,8 +233,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         cutoff = 1e-6;
         normed = 0;
         if small < cutoff
-           break
-           disp(['small = ',num2str(small)]);
+            disp(['small = ',num2str(small)]);
+            break
         elseif small < 1.0
             normed = 1;
             minusDS = minusDS/small;

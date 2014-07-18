@@ -138,8 +138,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             p(2*(j*Nb+1)+1) = p(2*j*Nb+1);
             p(2*j*Nb+2) = (1.0-open)*p(2*j*Nb+2) + open*p(2*(j*Nb+1)+2);%initial time imag
             p(2*(j*Nb+1)+2) = p(2*j*Nb+2);
-            p(2*((j+1)*Nb-1)) = open*p(2*((j+1)*Nb)) + (1.0-open)*p(2*((j+1)*Nb-1));%final time real
-            p(2*((j+1)*Nb)) = p(2*((j+1)*Nb-1));
+            p(2*((j+1)*Nb-1)+1) = open*p(2*((j+1)*Nb-2)+1) + (1.0-open)*p(2*((j+1)*Nb-1)+1);%final time real
+            p(2*((j+1)*Nb-2)+1) = p(2*((j+1)*Nb-1)+1);
             p(2*((j+1)*Nb-2)+2) = open*p(2*((j+1)*Nb-1)+2) + (1.0-open)*p(2*((j+1)*Nb-2)+2);%final time imag
             p(2*((j+1)*Nb-1)+2) = p(2*((j+1)*Nb-2)+2);
         end
@@ -216,10 +216,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1; %zero change at boundary
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
                 end
-                DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = real(siteMeasure*Chi0(x+1)); %zero mode lagrange constraint
-                DDSm(c3) = 2*j+2; DDSn(c3) = 2*Bdim+1; DDSv(c3) = imag(siteMeasure*Chi0(x+1)); %the constraint is real but its derivative wrt phi may be complex
-                minusDS(2*j+1) = - real(a*b*Chi0(j+1)*p(2*Bdim+1);
-                minusDS(2*j+2) = - imag(a*b*Chi0(j+1)*p(2*Bdim+1);
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = real(1i*a*Chi0(x+1)); %zero mode lagrange constraint
+                DDSm(c3) = 2*j+2; DDSn(c3) = 2*Bdim+1; DDSv(c3) = imag(1i*a*Chi0(x+1)); %the constraint is real but its derivative wrt phi may be complex
+                minusDS(2*j+1) = - real(1i*a*Chi0(j+1)*p(2*Bdim+1));
+                minusDS(2*j+2) = - imag(1i*a*Chi0(j+1)*p(2*Bdim+1));
             else
                 kinetic = kinetic + a*(Cp(j+2) - Cp(j+1))^2/dtj/2;
                 if t==0
@@ -275,10 +275,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             end
         end
         for j=0:(N-1) %adding last row, with lagrange muLbiplier terms
-            minusDS(2*Bdim+1) = - real(a*b*Chi0(j+1)*Cp((j+1)*Nb));
+            minusDS(2*Bdim+1) = - real(1i*a*Chi0(j+1)*Cp((j+1)*Nb));
             
-            DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+1; DDSv(c3) = real(a*b*Chi0(j+1)); %at t=Nb-1
-            DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+2; DDSv(c3) = -imag(a*b*Chi0(j+1));                          
+            DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+1; DDSv(c3) = real(a*Chi0(j+1)); %at t=Nb-1
+            DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+2; DDSv(c3) = -imag(a*Chi0(j+1));                          
         end
         clear c3; %returning persistent output of c3 to 1
         kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction

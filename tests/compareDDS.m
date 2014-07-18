@@ -1,15 +1,15 @@
 %function to compare DDS outputs from different programs/runs
 %originally intended to compare c++ and matlab code
 %no arguments
-function [XmDDS,XcDDS,XcompareDDS] = compareDDS
-    global Edim;
+function [XmDDS,XcDDS,XcompareDDS,Xmax] = compareDDS
+    global Bdim;
     mData = load('data/DDS.mat');
-    mData.DDSm(mData.DDSn==(2*Edim+1))=[]; %eliminating lagrange multiplier row and column
-    mData.DDSv(mData.DDSn==(2*Edim+1))=[];
-    mData.DDSn(mData.DDSn==(2*Edim+1))=[];
-    mData.DDSn(mData.DDSm==(2*Edim+1))=[];
-    mData.DDSv(mData.DDSm==(2*Edim+1))=[];
-    mData.DDSm(mData.DDSm==(2*Edim+1))=[];
+    %mData.DDSm(mData.DDSn==(2*Bdim+1))=[]; %eliminating lagrange multiplier row and column
+    %mData.DDSv(mData.DDSn==(2*Bdim+1))=[];
+    %mData.DDSn(mData.DDSn==(2*Bdim+1))=[];
+    %mData.DDSn(mData.DDSm==(2*Bdim+1))=[];
+    %mData.DDSv(mData.DDSm==(2*Bdim+1))=[];
+    %mData.DDSm(mData.DDSm==(2*Bdim+1))=[];
     
     mData.DDSm(mData.DDSv<1e-10)=[]; %eliminating zeros
     mData.DDSn(mData.DDSv<1e-10)=[];
@@ -34,5 +34,8 @@ function [XmDDS,XcDDS,XcompareDDS] = compareDDS
     spy(XcDDS)
     subplot(1,3,3)
     spy(XcompareDDS)
+    
+    tempV = nonzeros(XcompareDDS);
+    Xmax = max(tempV);
 end
 
