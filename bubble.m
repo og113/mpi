@@ -22,9 +22,12 @@ else
    printRun = -1; 
 end
 
-global d N Nt NtonN L Lt a b Edim; %defining global variables
+global d N Nt NtonN L Lt a b Edim Nb Bdim Tb; %defining global variables
 global R X lambda mass v epsilon;
 parameters(inP); %assigning global variables according to parameters.m
+Nt = Nb;
+Edim = Bdim;
+Lt = Lb;
 
 tic; %starting the clock
 
@@ -59,7 +62,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     for j=0:(Edim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
         rhoSqrd = 0;
         for k=0:(d-1)
-            rhoSqrd = rhoSqrd + reCoord(j,k)^2;
+            rhoSqrd = rhoSqrd + reCoord(j,k,Nt)^2;
         end
         rho = sqrt(rhoSqrd);
         if R<alpha/mass
@@ -123,18 +126,18 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         for j=0:(Edim-1)
             t = intCoord(j,0,Nt);
             x = intCoord(j,1,Nt);
-            siteMeasure = a*rDt1(j); %for sites in time
-            linkMeasure = -a*b; %for links in time
-            dtj = rdt(j);
             
-            potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
-            potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
+            if t==(Nt-1)
+                siteMeasure = -a*b/2.0; %for sites in time
+                linkMeasure = -a*b; %for links in time
+            
+                potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
+                potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
             if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
                 kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
             elseif x==(N-1) %avoinding using neigh and modulo as its slow
                 kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
             end
-            if t==(Nt-1)
                 if inP=='b' %boundary conditions
                     DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1/b; %zero time derivative
                     DDSm(c3) = j+1; DDSn(c3) = j; DDSv(c3) = 1/b;
@@ -144,22 +147,42 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                 DDSm(c3) = j+1; DDSn(c3) = Edim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
                 minusDS(j+1) = -a*p(Edim+1)*Chi0(x+1); %%%%%%%%%%%%%%%%%%
             else
-                kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
                 if t==0
+                    siteMeasure = -a*b/2.0; %for sites in time
+                    linkMeasure = -a*b; %for links in time
+                    dtj = -b;
+
+                    potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
+                    potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
+                    if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
+                        kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+                    elseif x==(N-1) %avoinding using neigh and modulo as its slow
+                        kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+                    end
+                    kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
+                    
                     DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1; %zero change at boundary
                 else
-                    dtjm = rdt(j-1);
+                    siteMeasure = -a*b/2.0; %for sites in time
+                    linkMeasure = -a*b; %for links in time
+                    dtj = -b;
+
+                    potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
+                    potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
+                    if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
+                        kinetic = kinetic + siteMeasure*(p(j+Nt+1)-p(j+1))^2/a^2/2;
+                    elseif x==(N-1) %avoinding using neigh and modulo as its slow
+                        kinetic = kinetic + siteMeasure*(p(j+1-Nt*(N-1))-p(j+1))^2/a^2/2;
+                    end
+                    kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
+                    
                     for k=0:(2*d-1)
                         sign = (-1)^k;
                         %%deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
                         direc = floor(k/2);
                         if direc == 0
-                            dtd = dtj;
-                            if sign==-1
-                                dtd = dtjm; 
-                            end
-                            minusDS(j+1) = minusDS(j+1) + a*p(j+sign+1)/dtd;
-                            DDSm(c3) = j+1; DDSn(c3) = (j+sign)+1; DDSv(c3) = -a/dtd;
+                            minusDS(j+1) = minusDS(j+1) + a*p(j+sign+1)/dtj;
+                            DDSm(c3) = j+1; DDSn(c3) = (j+sign)+1; DDSv(c3) = -a/dtj;
                         else
                             neighb = neigh(j,direc,sign,Nt);
                             minusDS(j+1) = minusDS(j+1) + siteMeasure*p(neighb+1)/a^2; %note Dt(j) = Dt(j+Nt) etc.
@@ -206,8 +229,18 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             end
         end
         
-        DDS = -DDS;
-        minusDS = -minusDS;
+        small = norm(minusDS);
+        cutoff = 1e-6;
+        normed = 0;
+        if small < cutoff
+           break
+           disp(['small = ',num2str(small)]);
+        elseif small < 1.0
+            normed = 1;
+            minusDS = minusDS/small;
+            DDS = DDS/small;
+            disp(['small = ',num2str(small)]);
+        end
 
         %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
         
@@ -217,7 +250,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
         [Lo,Up] = ilu(DDS,setup);%[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
 
-        tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
+        tol = 1e-8; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
         maxit = 50; %max number of iterations
         delta = zeros(Edim+1);
         %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
@@ -241,6 +274,16 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             elseif flag == 4
                 disp('one of the scalar quantities calculated during linear solver became too small or too large to continue computing!');
             end
+        end
+        fprintf('%12s','iter = ');
+        fprintf('%12g\n',iter);
+        fprintf('%12s','relres = ');
+        fprintf('%12g\n',relres);
+        
+        if normed
+            delta = delta*small;
+            minusDS = minusDS*small;
+            DDS = DDS*small;
         end
 
         %p = p + delta(orderCol)'; %p -> p'

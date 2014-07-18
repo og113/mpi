@@ -46,10 +46,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     perturbImag = zeros(Bdim,1);
     %%pNeg = zeros(2*Bdim,1); %negative eigenvector
     
-    syms x
-    minima = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
-    %polynomial = [1, 0 , -v^2, epsilon/v/lambda];
-    %minima = roots(polynomial);
+    %syms x
+    %minima = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
+    polynomial = [1, 0 , -v^2, epsilon/v/lambda];
+    minima = roots(polynomial);
     minima = sort(minima); %roots sorted in ascending order https://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
     
     if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
@@ -131,17 +131,17 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     p(Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
-    if inP == 'p' %fixing input periodic instanton to have zero time derivative at time boundaries
+    if strcmp(inP,'p') %fixing input periodic instanton to have zero time derivative at time boundaries
         open = 0.5; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
-            p(2*j*Nb+1) = open*p(2*j*Nb+1) + (1-open)*p(2*(j*Nb+1)+1);%intiial time real
-            p(2*(j*Nb+1)+1) = open*p(2*j*Nb+1) + (1-open)*p(2*(j*Nb+1)+1);
-            p(2*j*Nb+2) = open*p(2*j*Nb+2) + (1-open)*p(2*(j*Nb+1)+2);%initial time imag
-            p(2*(j*Nb+1)+2) = open*p(2*j*Nb+2) + (1-open)*p(2*(j*Nb+1)+2);
-            p(2*((j+1)*Nb-1)) = open*p(2*((j+1)*Nb)) + (1-open)*p(2*((j+1)*Nb-1));%final time real
-            p(2*((j+1)*Nb)) = open*p(2*((j+1)*Nb)) + (1-open)*p(2*((j+1)*Nb-1));
-            p(2*((j+1)*Nb-2)+2) = open*p(2*((j+1)*Nb-1)+2) + (1-open)*p(2*((j+1)*Nb-2)+2);%final time imag
-            p(2*((j+1)*Nb-1)+2) = open*p(2*((j+1)*Nb-1)+2) + (1-open)*p(2*((j+1)*Nb-2)+2);
+            p(2*j*Nb+1) = (1.0-open)*p(2*j*Nb+1) + open*p(2*(j*Nb+1)+1);%intiial time real
+            p(2*(j*Nb+1)+1) = p(2*j*Nb+1);
+            p(2*j*Nb+2) = (1.0-open)*p(2*j*Nb+2) + open*p(2*(j*Nb+1)+2);%initial time imag
+            p(2*(j*Nb+1)+2) = p(2*j*Nb+2);
+            p(2*((j+1)*Nb-1)) = open*p(2*((j+1)*Nb)) + (1.0-open)*p(2*((j+1)*Nb-1));%final time real
+            p(2*((j+1)*Nb)) = p(2*((j+1)*Nb-1));
+            p(2*((j+1)*Nb-2)+2) = open*p(2*((j+1)*Nb-1)+2) + (1.0-open)*p(2*((j+1)*Nb-2)+2);%final time imag
+            p(2*((j+1)*Nb-1)+2) = p(2*((j+1)*Nb-2)+2);
         end
     end
     
@@ -167,13 +167,12 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             %disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
         end
 
-        for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
-            if j~=(N-1)
-                Chi0(j+1) = (p(2*((j+2)*Nb-1)+1)+1i*p(2*((j+2)*Nb-1)+1)-p(2*((j+1)*Nb-1)+1)+1i*p(2*((j+1)*Nb-1)+1))/a; %%note only use real derivative - this is a fudge due to initial input
-            else
-                Chi0(j+1) = (p(2*(Nb-1)+1)+1i*p(2*(Nb-1)+1)-p(2*(N*Nb-1)+1)+1i*p(2*(N*Nb-1)+1))/a;
-            end
+        for j=1:(N-2) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
+            pos = (j+1)*Nb-1;
+            Chi0(j+1) = p(2*(pos+Nb)+1)+1i*p(2*(pos+Nb)+1)-p(2*(pos-Nb)+1)-1i*p(2*(pos-Nb)+1); %%note only use real derivative - this is a fudge due to initial input
         end
+        Chi0(1) = p(2*(2*Nb-1)+1)+1i*p(2*(2*Nb-1)+1)-p(2*(N*Nb-1)+1)-1i*p(2*(N*Nb-1)+1);
+        Chi0(N) = p(2*(Nb-1)+1)+1i*p(2*(Nb-1)+1)-p(2*((N-1)*Nb-1)+1)-1i*p(2*((N-1)*Nb-1)+1);
         Chi0 = Chi0/norm(Chi0);
         
         nonz = 0; %number of nonzero elements of DDS
@@ -219,6 +218,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 end
                 DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = real(siteMeasure*Chi0(x+1)); %zero mode lagrange constraint
                 DDSm(c3) = 2*j+2; DDSn(c3) = 2*Bdim+1; DDSv(c3) = imag(siteMeasure*Chi0(x+1)); %the constraint is real but its derivative wrt phi may be complex
+                minusDS(2*j+1) = - real(a*b*Chi0(j+1)*p(2*Bdim+1);
+                minusDS(2*j+2) = - imag(a*b*Chi0(j+1)*p(2*Bdim+1);
             else
                 kinetic = kinetic + a*(Cp(j+2) - Cp(j+1))^2/dtj/2;
                 if t==0
@@ -274,7 +275,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             end
         end
         for j=0:(N-1) %adding last row, with lagrange muLbiplier terms
-            minusDS(2*Bdim+1) = minusDS(2*Bdim+1) - real(a*b*Chi0(j+1)*Cp((j+1)*Nb));
+            minusDS(2*Bdim+1) = - real(a*b*Chi0(j+1)*Cp((j+1)*Nb));
             
             DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+1; DDSv(c3) = real(a*b*Chi0(j+1)); %at t=Nb-1
             DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+2; DDSv(c3) = -imag(a*b*Chi0(j+1));                          
@@ -305,6 +306,17 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             elseif aq.printChoice ~= 'p'
                 disp('early print error');
             end
+        end
+        
+        small = norm(minusDS);
+        cutoff = 1e-5;
+        normed = 0;
+        if small < cutoff
+           break
+        elseif small < 1.0
+            normed = 1;
+            minusDS = minusDS/small;
+            DDS = DDS/small;
         end
 
         [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
@@ -343,6 +355,12 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         fprintf('%12g\n',iter);
         fprintf('%12s','relres = ');
         fprintf('%12g\n',relres);
+        
+        if normed
+            delta = delta*small;
+            minusDS = minusDS*small;
+            DDS = DDS*small;
+        end
         
         if size(delta,1)==1
             p = p + delta(orderCol)'; %p -> p'
