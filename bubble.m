@@ -95,15 +95,23 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         actionLast = action;
         
         minusDS = zeros(Bdim+1,1); %-dS/d(p)
-        Chi0 = zeros(N,1); %to fix zero mode, alla kuznetsov, dl[7], though not quite
+        %Chi0 = zeros(N,1); %to fix zero mode at final time, alla kuznetsov, dl[7], though not quite
+        Chi1 = zeros(Bdim); %to fix zero mode everywhere
 
-        for j=1:(N-2) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
-            Chi0(j+1) = p((j+2)*Nb)-p(j*Nb); %shouldn't be forward or backward derivative as this will move boundary phi in a direction.
+        %for j=1:(N-2) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
+        %    Chi0(j+1) = p((j+2)*Nb)-p(j*Nb); %shouldn't be forward or backward derivative as this will move boundary phi in a direction.
+        %end
+        %Chi0(N) = p(Nb)-p((N-1)*Nb);
+        %Chi0(1) = p(2*Nb)-p(N*Nb);
+        %if norm(Chi0)~=0
+        %    Chi0 = Chi0/norm(Chi0);
+        %end
+        
+        for j=0:(Bdim-1)
+           Chi1(j+1) = p(neigh(j,1,1,Nb)+1) - p(neigh(j,1,-1,Nb)+1);
         end
-        Chi0(N) = p(Nb)-p((N-1)*Nb);
-        Chi0(1) = p(2*Nb)-p(N*Nb);
-        if norm(Chi0)~=0
-            Chi0 = Chi0/norm(Chi0);
+        if norm(Chi1)~=0
+            Chi1 = Chi1/norm(Chi1);
         end
         
         nonz = 5*(Bdim-2) + 5*N; %number of nonzero elements of DDS
@@ -126,26 +134,33 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             
                 potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
                 potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
-            if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
-                kinetic = kinetic + siteMeasure*(p(j+Nb+1)-p(j+1))^2/a^2/2;
-            elseif x==(N-1) %avoinding using neigh and modulo as its slow
-                kinetic = kinetic + siteMeasure*(p(j+1-Nb*(N-1))-p(j+1))^2/a^2/2;
-            end
-                if inP=='b' %boundary conditions
-                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1/b; %zero time derivative
-                    DDSm(c3) = j+1; DDSn(c3) = j; DDSv(c3) = 1/b;
-                elseif inP=='t' || inP=='f'
-                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = -1; %zero change at boundary
+                if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
+                    kinetic = kinetic + siteMeasure*(p(j+Nb+1)-p(j+1))^2/a^2/2;
+                elseif x==(N-1) %avoinding using neigh and modulo as its slow
+                    kinetic = kinetic + siteMeasure*(p(j+1-Nb*(N-1))-p(j+1))^2/a^2/2;
                 end
-                DDSm(c3) = j+1; DDSn(c3) = Bdim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
-                minusDS(j+1) = -a*p(Bdim+1)*Chi0(x+1); %%%%%%%%%%%%%%%%%%
+            
+                if inP=='b' %boundary conditions
+                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = 1.0/b; %zero time derivative
+                    DDSm(c3) = j+1; DDSn(c3) = j; DDSv(c3) = -1.0/b;
+                elseif inP=='t' || inP=='f'
+                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = 1.0; %zero change at boundary
+                end
+                
+                %DDSm(c3) = j+1; DDSn(c3) = Bdim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
+                %minusDS(j+1) = -a*p(Bdim+1)*Chi0(x+1);
+                DDSm(c3) = j+1; DDSn(c3) = Bdim+1; DDSv(c3) = siteMeasure*Chi0(j+1); %zero mode lagrange constraint
+                minusDS(j+1) = -siteMeasure*p(Bdim+1)*Chi1(j+1);
+                minusDS(Bdim+1) = minusDS(Bdim+1) - siteMeasure*Chi1(j+1)*p((j+1)*Nb);        
+                DDSm(c3) = Bdim+1; DDSn(c3) = (j+1)*Nb; DDSv(c3) = siteMeasure*Chi1(j+1); %at t=Nb-1
+                
             else
                 if t==0
                     siteMeasure = -a*b/2.0; %for sites in time
                     linkMeasure = -a*b; %for links in time
                     dtj = -b;
 
-                    potL = potL + siteMeasure*(lambda/8)*(p(j+1)^2-v^2)^2;
+                    potL = potL + siteMeasure*(lambda/8.0)*(p(j+1)^2-v^2)^2;
                     potE = potE + siteMeasure*epsilon*(p(j+1)-v)/v/2;
                     if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
                         kinetic = kinetic + siteMeasure*(p(j+Nb+1)-p(j+1))^2/a^2/2;
@@ -155,6 +170,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     kinetic = kinetic + linkMeasure*((p(j+2) - p(j+1))/dtj)^2/2;
                     
                     DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = 1; %zero change at boundary
+                    
+                    DDSm(c3) = j+1; DDSn(c3) = Bdim+1; DDSv(c3) = siteMeasure*Chi0(j+1); %zero mode lagrange constraint
+                    minusDS(j+1) = -siteMeasure*p(Bdim+1)*Chi1(j+1);
+                    minusDS(Bdim+1) = minusDS(Bdim+1) - siteMeasure*Chi1(j+1)*p((j+1)*Nb);        
+                    DDSm(c3) = Bdim+1; DDSn(c3) = (j+1)*Nb; DDSv(c3) = siteMeasure*Chi1(j+1); %at t=Nb-1
                 else
                     siteMeasure = -a*b; %for sites in time
                     linkMeasure = -a*b; %for links in time
@@ -178,22 +198,27 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                             DDSm(c3) = j+1; DDSn(c3) = (j+sign)+1; DDSv(c3) = -a/dtj;
                         else
                             neighb = neigh(j,direc,sign,Nb);
-                            minusDS(j+1) = minusDS(j+1) + siteMeasure*p(neighb+1)/a^2; %note Dt(j) = Dt(j+Nb) etc.
+                            minusDS(j+1) = minusDS(j+1) + siteMeasure*p(neighb+1)/a^2;
                             DDSm(c3) = j+1; DDSn(c3) = neighb+1; DDSv(c3) = -siteMeasure/a^2;
                         end
                     end                    
-                    minusDS(j+1) = minusDS(j+1) - siteMeasure*(2*(d-1)/a^2*p(j+1)...
-                                    + (lambda/2)*p(j+1)*(p(j+1)^2-v^2) + epsilon/2/v) - 2*a*p(j+1)/dtj;
-                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = siteMeasure*( 2*((d-1)/a^2 + 1/dtj^2) + (lambda/2)*(3*p(j+1)^2-v^2) );
+                    minusDS(j+1) = minusDS(j+1) - siteMeasure*(2.0*p(j+1)/a^2 + 2.0*p(j+1)/dtj^2 ...
+                                    + (lambda/2.0)*p(j+1)*(p(j+1)^2-v^2) + epsilon/2.0/v);
+                    DDSm(c3) = j+1; DDSn(c3) = j+1; DDSv(c3) = siteMeasure*( 2.0/a^2 + 2.0/dtj^2 + (lambda/2.0)*(3.0*p(j+1)^2-v^2) );
+                    
+                    DDSm(c3) = j+1; DDSn(c3) = Bdim+1; DDSv(c3) = siteMeasure*Chi0(j+1); %zero mode lagrange constraint
+                    minusDS(j+1) = -siteMeasure*p(Bdim+1)*Chi1(j+1);
+                    minusDS(Bdim+1) = minusDS(Bdim+1) - siteMeasure*Chi1(j+1)*p((j+1)*Nb);        
+                    DDSm(c3) = Bdim+1; DDSn(c3) = j+1; DDSv(c3) = siteMeasure*Chi1(j+1); %at t=Nb-1
                 end
             end
         end
-        for j=0:(N-1) %adding last row, with lagrange multiplier terms
-            minusDS(Bdim+1) = minusDS(Bdim+1) - a*Chi0(j+1)*p((j+1)*Nb);        
-            DDSm(c3) = Bdim+1; DDSn(c3) = (j+1)*Nb; DDSv(c3) = a*Chi0(j+1); %at t=Nb-1                        
-        end
+        %for j=0:(Bdim-1) %adding last row, with lagrange multiplier terms
+            %minusDS(Bdim+1) = minusDS(Bdim+1) - a*Chi0(j+1)*p((j+1)*Nb);        
+            %DDSm(c3) = Bdim+1; DDSn(c3) = (j+1)*Nb; DDSv(c3) = a*Chi0(j+1); %at t=Nb-1        
+        %end
         clear c3; %returning persistent output of c3 to 1
-        kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
+        %kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
         action = 1i*(kinetic + potL + potE);
         DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
         DDSn(DDSv==0) = [];
@@ -235,6 +260,10 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             DDS = DDS/small;
             disp(['small = ',num2str(small)]);
         end
+        
+        c = condest(DDS);
+        fprintf('%12s','condest = ');
+        fprintf('%12g\n',c);
 
         %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
         orderRow = dmperm(DDS);
@@ -290,7 +319,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         end
 
         %pNeg and pZer plus log(det(DDS)) stuff
-
         stopTime = toc;
         
         if runsCount > 1000 %convergence questions

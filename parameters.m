@@ -2,7 +2,7 @@
 %changeParameters.m
 %argument is inputP
 function parameters(inputP)
-    global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim;
+    global d N Na Nb Nc NT L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim;
     global R X lambda mass v epsilon angle theta;
     
     %main global parameters
@@ -10,8 +10,8 @@ function parameters(inputP)
     N = 80;
     Na = 96;
     Nb = 80;
-    Nc = 2;
-    R = 20;
+    Nc = 64;
+    R = 50;
     mass = 1;
     lambda = 1/10;
     theta = 0;
@@ -29,14 +29,15 @@ function parameters(inputP)
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'
         Lb = 2*R;
-		L = 4*R;
+		L = 3*R;
 		a = L/(N-1);
 		b = Lb/(Nb-1);
         La = (Na-1)*b;
         Lc = (Nc-1)*b;
     elseif inputP=='p'
-        Lb = 0.6*R;
+        Lb = 1.0*R;
         angle = asin(Lb/R);
+        Ltemp = 3*R;
         L = 3*Lb*tan(angle);
         a = L/(N-1);
 		b = Lb/(Nb-1);

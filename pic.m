@@ -1,22 +1,31 @@
 %script to find the periodic instanton of the stable phi^4 with negative
 %mass
 
-aq.inputP = 'p'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
 aq.minValue = 32;
 aq.maxValue = 64;
 aq.totalLoops = 5;
-aq.printChoice = 'n';
-aq.printRun = 0;
 
-aq = askQuestions; %asking questions
+tempAq = askQuestions; %asking questions
+fields = fieldnames(tempAq);
+for j=1:numel(fields) %using non-empty responses to questions to fill in aq
+    if ~isempty(tempAq.(fields{j}))
+       aq.(fields{j}) = tempAq.(fields{j}); 
+    end
+end
 inP = aq.inputP; %just because I write this a lot
 
-global d N Na Nb Nc L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
+global d N Na Nb Nc L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle;
 parameters(inP); %assigning global variables according to parameters.m
+
+if L > Ltemp  %making sure to use the smaller of the two possible Ls
+	L = Ltemp;
+	a = L/(N-1.0);
+end
 
 
 for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
@@ -32,13 +41,14 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
-    alpha = 5; %determines range over which tanh(x) is used
+    alpha = 8; %determines range over which tanh(x) is used
     action = complex(2);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
-    runsTest = 1;
-    closeness = 1e-4;
+    actionTest = 1;
+    vectorTest = 1;
+    closeness = 1e-3;
     minRuns = 3;
     
     p = zeros(2*Bdim+1,1); %phi, in the euclidean domain
@@ -132,7 +142,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     p(Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
     if strcmp(inP,'p') %fixing input periodic instanton to have zero time derivative at time boundaries
-        open = 0.5; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
+        open = 1.0; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
             p(2*j*Nb+1) = (1.0-open)*p(2*j*Nb+1) + open*p(2*(j*Nb+1)+1);%intiial time real
             p(2*(j*Nb+1)+1) = p(2*j*Nb+1);
@@ -150,8 +160,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     %%end
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
-    while (runsTest > closeness || runsCount<minRuns) && Xwait%beginning newton-raphson loop
-        runsTest = abs(action - actionLast)/abs(actionLast); %note this won't work if action goes to zero
+    while (actionTest(end) > closeness || vectorTest(end) > closeness || runsCount<minRuns) && Xwait%beginning newton-raphson loop
+        actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
         runsCount = runsCount + 1;
         actionLast = action;
         
@@ -159,13 +169,6 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         Cp = vecComplex(p,Bdim); %complex p, excluding real lagrange muLbiplier
         Chi0 = zeros(N,1); %to fix zero mode, alla kuznetsov, dl[7], though not quite
         %%CpNeg = complex(zeros(Bdim,1));
-        
-        if aq.printChoice~='n' && runsCount == aq.printRun && aq.printChoice == 'p' %printing p early if asked for 
-            t = eTVec(Nb,N);
-            x = xVec(Nb,N);
-            save (['data/phiEarly',num2str(loop),'.mat'], 't', 'x', 'Cp');
-            %disp(['printed phi in data/phiEarly.mat on run ',num2str(runsCount)]);
-        end
 
         for j=1:(N-2) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
             pos = (j+1)*Nb-1;
@@ -272,9 +275,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 end
             end
         end
-        for j=0:(N-1) %adding last row, with lagrange muLbiplier terms
+        for j=0:(N-1) %adding last row, with lagrange multiplier terms
             minusDS(2*Bdim+1) = minusDS(2*Bdim+1) - a*Chi0(j+1)*p(2*((j+1)*Nb-1)+1);
-            
             DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+1; DDSv(c3) = a*Chi0(j+1); %at t=Nb-1                          
         end
         clear c3; %returning persistent output of c3 to 1
@@ -285,51 +287,43 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         DDSv(DDSv==0) = [];
         DDS = sparse(DDSm,DDSn,DDSv,2*Bdim+1,2*Bdim+1);
 
-        if aq.printChoice~='n' && runsCount == aq.printRun %printing early if asked for
-            if aq.printChoice == 'a'
-                disp(['kinetic = ',num2str(kinetic)]);
-                disp(['lambda potential = ',num2str(potL)]);
-                disp(['epsilon potential = ',num2str(potE)]);
-                disp(['action = ',num2str(action)]);
-            elseif aq.printChoice == 'v'
-                save data/minusDS.mat minusDS;
-                disp(['printed minusDS in data/minusDS.mat on run ',num2str(runsCount)]);
-            elseif aq.printChoice == 'm'
-                spy(DDS);
-                pause(5);
-                [DDSm,DDSn,DDSv] = find(DDS);
-                save data/DDS.mat DDSm DDSn DDSv;
-                disp(['printed DDS in data/DDS.mat on run ',num2str(runsCount)]);
-            elseif aq.printChoice ~= 'p'
-                disp('early print error');
-            end
-        end
         
-        small = norm(minusDS);
-        smaller = small/(2*Bdim+1);
-        cutoff = 1e-6;
-        normed = 0;
-        if smaller < cutoff
-           Xwait = 0;
-           break;
-        else
-            normed = 1;
-            minusDS = minusDS/small;
-            DDS = DDS/small;
-        end
-
-        [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        save( ['data/picOut',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');
         
-        setup.type = 'nofill';%'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
-        setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
-        setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
-        setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
-        [Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+        %small = norm(minusDS); %normalising problem
+        %smaller = small/(2*Bdim+1);
+        %cutoff = 1e-6;
+        %normed = 0;
+        %if smaller < cutoff
+        %   Xwait = 0;
+        %   break;
+        %else
+        %    normed = 1;
+        %    minusDS = minusDS/small;
+        %    DDS = DDS/small;
+        %end
+        
+        %c = condest(DDS); %finding estimate and bound for condition number
+        %fprintf('%12s','condest = ');
+        %fprintf('%12g\n',c);
 
-        tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
-        maxit = 50; %max number of iterations
-        x0 = rand(2*Bdim+1,1);       
-        [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up,x0); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        %orderRow = dmperm(DDS);
+        
+        %setup.type = 'nofill';%'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
+        %setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        %setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
+        %setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
+        %[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+        %[Lo,Up] = ilu(DDS(orderRow,:),setup);
+        
+        %tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
+        %maxit = 50; %max number of iterations
+        %x0 = rand(2*Bdim+1,1);
+        %delta = zeros(2*Bdim+1,1);
+        %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up,x0); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        %[delta,flag,relres,iter,resvec] = lsqr(DDS(orderRow,:),minusDS(orderRow),tol,maxit,Lo,Up,x0);
+        flag=0;
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([deLba,flag] -> [deLba,flag,relres])
             if flag == 1
                 disp('linear solver interated maxit times but did not converge!');
@@ -350,15 +344,18 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 disp('one of the scalar quantities calculated during linear solver became too small or too large to continue computing!');
             end
         end
-        fprintf('%12s','iter = ');
-        fprintf('%12g\n',iter);
-        fprintf('%12s','relres = ');
-        fprintf('%12g\n',relres);
+        %fprintf('%12s','iter = ');
+        %fprintf('%12g\n',iter);
+        %fprintf('%12s','relres = ');
+        %fprintf('%12g\n',relres);
         
-        if normed
-            minusDS = minusDS*small;
-            DDS = DDS*small;
-        end
+        %if normed
+        %    minusDS = minusDS*small;
+        %    DDS = DDS*small;
+        %end
+        
+        delta = minusDS\DDS; %replacing complicated expressions for solving equations with simply this
+        vectorTest = [vectorTest, norm(delta)/norm(p)];
         
         if size(delta,1)==1
             p = p + delta'; %p -> p'
@@ -369,8 +366,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         %pNeg and pZer plus log(det(DDS)) stuff
 
         stopTime = toc;
-        [Xwait] = convergenceQuestions(runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
-
+        [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
+        aq = Xaq;
+        
     end %closing newton-raphson loop
 
     %propagating solution back in minkowskian time
