@@ -41,7 +41,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
-    alpha = 8; %determines range over which tanh(x) is used
+    alpha = 10; %determines range over which tanh(x) is used
     action = complex(2);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
@@ -298,6 +298,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
 
         
         save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');
+        %action
         
         small = norm(minusDS); %normalising problem
         smaller = small/(2*Bdim+1);
