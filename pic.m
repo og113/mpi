@@ -326,22 +326,22 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         end
         
 
-        [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
         %orderRow = dmperm(DDS);
         %orderRow(end) = length(orderRow); %as it sometimes gives 0 at the end
         
-        setup.type = 'nofill';%'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
-        setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
-        setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
-        setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
-        [Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+        %setup.type = 'nofill';%'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
+        %setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        %setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
+        %setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
+        %[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
         %[Lo,Up] = ilu(DDS(orderRow,:),setup);
         
-        tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
-        maxit = 50; %max number of iterations
-        x0 = rand(2*Bdim+1,1);
-        delta = zeros(2*Bdim+1,1);
-        [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up,x0); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        %tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
+        %maxit = 50; %max number of iterations
+        %x0 = rand(2*Bdim+1,1);
+        %delta = zeros(2*Bdim+1,1);
+        %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up,x0); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         %[delta,flag,relres,iter,resvec] = lsqr(DDS(orderRow,:),minusDS(orderRow),tol,maxit,Lo,Up,x0);
         flag=0;
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([deLba,flag] -> [deLba,flag,relres])
@@ -368,6 +368,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         %fprintf('%12g\n',iter);
         %fprintf('%12s','relres = ');
         %fprintf('%12g\n',relres);
+        
+        delta = DDS\minusDS; %this is where the magic happens - direct gaussian elimination
         
         if normed
             minusDS = minusDS*small;
