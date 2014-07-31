@@ -264,7 +264,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                             neighb = neigh(j,direc,sign,Nb);
                             minusDS(2*j+1) = minusDS(2*j+1) - real(Dtj*Cp(neighb+1)/a); %note Dt1(j) = Dt1(j+Nb) etc.
                             minusDS(2*j+2) = minusDS(2*j+2) - imag(Dtj*Cp(neighb+1)/a);
-                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*+1; DDSv(c3) = real(Dtj/a);
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*neighb+1; DDSv(c3) = real(Dtj/a);
                             DDSm(c3) = 2*j+1; DDSn(c3) = 2*neighb+2; DDSv(c3) = -imag(Dtj/a);
                             DDSm(c3) = 2*j+2; DDSn(c3) = 2*neighb+1; DDSv(c3) = imag(Dtj/a);
                             DDSm(c3) = 2*j+2; DDSn(c3) = 2*neighb+2; DDSv(c3) = real(Dtj/a);
