@@ -29,7 +29,7 @@ function parameters(inputP)
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'
         Lb = 2*R;
-		L = 3*R;
+		L = 3.5*R;
 		a = L/(N-1);
 		b = Lb/(Nb-1);
         La = (Na-1)*b;

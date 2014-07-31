@@ -167,16 +167,20 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         
         minusDS = zeros(2*Bdim+1,1); %-dS/d(p)
         Cp = vecComplex(p,Bdim); %complex p, excluding real lagrange muLbiplier
-        Chi0 = zeros(N,1); %to fix zero mode, alla kuznetsov, dl[7], though not quite
+        Chi0 = zeros(2*N,1); %to fix zero mode, alla kuznetsov, dl[7], though not quite
         %%CpNeg = complex(zeros(Bdim,1));
 
         for j=1:(N-2) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
             pos = (j+1)*Nb-1;
             Chi0(j+1) = p(2*(pos+Nb)+1)-p(2*(pos-Nb)+1);
+            Chi0(j+N+1) = p(2*(pos+Nb-1)+1)-p(2*(pos-Nb-1)+1);
         end
         Chi0(1) = p(2*(2*Nb-1)+1)-p(2*(N*Nb-1)+1);
         Chi0(N) = p(2*(Nb-1)+1)-p(2*((N-1)*Nb-1)+1);
+        Chi0(N+1) = p(2*(2*Nb-1-1)+1)-p(2*(N*Nb-1-1)+1);
+        Chi0(2*N) = p(2*(Nb-1-1)+1)-p(2*((N-1)*Nb-1-1)+1);
         Chi0 = Chi0/norm(Chi0);
+        Chi0 = v*Chi0;
         
         nonz = 0; %number of nonzero elements of DDS
         if inP == 'b' || inP == 't' || inP == 'f'
@@ -212,7 +216,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             end
             if t==(Nb-1)
                 if inP=='p' || inP=='b' %boundary conditions
-                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1/b; %zero time derivative %don't forget to clear c3
+                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1/b; %zero time derivative
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+1; DDSv(c3) = -1/b;
                 elseif inP=='t' || inP=='f'
@@ -220,7 +224,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
                 end
                 DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = a*Chi0(x+1); %zero mode lagrange constraint
-                minusDS(2*j+1) = - a*Chi0(x+1)*p(2*Bdim+1);
+                minusDS(2*j+1) = - a*Chi0(x+1)*p(2*Bdim+1); 
             else
                 kinetic = kinetic + a*(Cp(j+2) - Cp(j+1))^2/dtj/2;
                 if t==0
@@ -233,6 +237,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = 1/b;
                     end
                 else
+                    if t==(Nb-2)
+                    	DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = a*Chi0(x+N+1); %zero mode lagrange constraint
+                        minusDS(2*j+1) = - a*Chi0(x+N+1)*p(2*Bdim+1); 
+                    end
                     dtjm = dt(j-1);
                     for k=0:(2*d-1)
                         sign = (-1)^k;
@@ -276,8 +284,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             end
         end
         for j=0:(N-1) %adding last row, with lagrange multiplier terms
-            minusDS(2*Bdim+1) = minusDS(2*Bdim+1) - a*Chi0(j+1)*p(2*((j+1)*Nb-1)+1);
+            minusDS(2*Bdim+1) = minusDS(2*Bdim+1) - a*Chi0(j+1)*p(2*((j+1)*Nb-1)+1) - a*Chi0(j+N+1)*p(2*((j+1)*Nb-1-1)+1);
             DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1)+1; DDSv(c3) = a*Chi0(j+1); %at t=Nb-1                          
+            DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*((j+1)*Nb-1-1)+1; DDSv(c3) = a*Chi0(j+N+1); %at t=Nb-2
         end
         clear c3; %returning persistent output of c3 to 1
         kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
@@ -288,40 +297,51 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         DDS = sparse(DDSm,DDSn,DDSv,2*Bdim+1,2*Bdim+1);
 
         
-        save( ['data/picOut',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');
+        save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');
         
-        %small = norm(minusDS); %normalising problem
-        %smaller = small/(2*Bdim+1);
-        %cutoff = 1e-6;
-        %normed = 0;
-        %if smaller < cutoff
-        %   Xwait = 0;
-        %   break;
-        %else
-        %    normed = 1;
-        %    minusDS = minusDS/small;
-        %    DDS = DDS/small;
-        %end
+        small = norm(minusDS); %normalising problem
+        smaller = small/(2*Bdim+1);
+        cutoff = 1e-6;
+        normed = 0;
+        if smaller < cutoff
+           Xwait = 0;
+           break;
+        else
+            normed = 1;
+            minusDS = minusDS/small;
+            DDS = DDS/small;
+        end
         
-        %c = condest(DDS); %finding estimate and bound for condition number
-        %fprintf('%12s','condest = ');
-        %fprintf('%12g\n',c);
+        limit = 1e14;
+        c = condest(DDS); %finding estimate and bound for condition number
+        eigen = eigs(DDS,1,0);
+        if c>limit || abs(eigen)<1/limit
+            singular = svds(DDS,1,0);
+            fprintf('%12s','condest = ');
+            fprintf('%12g\n',c);
+            fprintf('%12s','smallest singular value is = ');
+            fprintf('%12g\n',singular);
+            fprintf('%12s','smallest eigenvalue is = ');           
+            fprintf('%12g\n',eigen);
+        end
+        
 
-        %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
         %orderRow = dmperm(DDS);
+        %orderRow(end) = length(orderRow); %as it sometimes gives 0 at the end
         
-        %setup.type = 'nofill';%'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
-        %setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
-        %setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
-        %setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
-        %[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+        setup.type = 'nofill';%'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
+        setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
+        setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
+        [Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
         %[Lo,Up] = ilu(DDS(orderRow,:),setup);
         
-        %tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
-        %maxit = 50; %max number of iterations
-        %x0 = rand(2*Bdim+1,1);
-        %delta = zeros(2*Bdim+1,1);
-        %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up,x0); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
+        maxit = 50; %max number of iterations
+        x0 = rand(2*Bdim+1,1);
+        delta = zeros(2*Bdim+1,1);
+        [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up,x0); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
         %[delta,flag,relres,iter,resvec] = lsqr(DDS(orderRow,:),minusDS(orderRow),tol,maxit,Lo,Up,x0);
         flag=0;
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([deLba,flag] -> [deLba,flag,relres])
@@ -349,12 +369,12 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         %fprintf('%12s','relres = ');
         %fprintf('%12g\n',relres);
         
-        %if normed
-        %    minusDS = minusDS*small;
-        %    DDS = DDS*small;
-        %end
+        if normed
+            minusDS = minusDS*small;
+            DDS = DDS*small;
+        end
         
-        delta = minusDS\DDS; %replacing complicated expressions for solving equations with simply this
+        %delta = minusDS\DDS; %replacing complicated expressions for solving equations with simply this
         vectorTest = [vectorTest, norm(delta)/norm(p)];
         
         if size(delta,1)==1
