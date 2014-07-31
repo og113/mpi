@@ -239,7 +239,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 else
                     if t==(Nb-2)
                     	DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = a*Chi0(x+N+1); %zero mode lagrange constraint
-                        minusDS(2*j+1) = - a*Chi0(x+N+1)*p(2*Bdim+1); 
+                        minusDS(2*j+1) = minusDS(2*j+1) - a*Chi0(x+N+1)*p(2*Bdim+1); 
                     end
                     dtjm = dt(j-1);
                     for k=0:(2*d-1)
