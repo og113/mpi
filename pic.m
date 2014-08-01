@@ -9,6 +9,14 @@ aq.minValue = 32;
 aq.maxValue = 64;
 aq.totalLoops = 5;
 
+parameters(inP); %assigning global variables according to parameters.m
+
+%printing to terminal
+fprintf('%8s','N', 'Na','Nb','Nc','L','Lb','R','mass','lambda'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+fprintf('\n');
+fprintf('%8g',N,Na,Nb,Nc,L,Lb,R,mass);
+fprintf('%8g\n',lambda);
+
 tempAq = askQuestions; %asking questions
 fields = fieldnames(tempAq);
 for j=1:numel(fields) %using non-empty responses to questions to fill in aq
@@ -20,7 +28,6 @@ inP = aq.inputP; %just because I write this a lot
 
 global d N Na Nb Nc L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle;
-parameters(inP); %assigning global variables according to parameters.m
 
 if L > Ltemp  %making sure to use the smaller of the two possible Ls
 	L = Ltemp;
@@ -41,7 +48,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
-    alpha = 10; %determines range over which tanh(x) is used
+    alpha = 15; %determines range over which tanh(x) is used
     action = complex(2);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
@@ -163,6 +170,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     while (actionTest(end) > closeness || vectorTest(end) > closeness || runsCount<minRuns) && Xwait%beginning newton-raphson loop
         actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
         runsCount = runsCount + 1;
+        disp(num2str(runsCount)); %just to see where we are
         actionLast = action;
         
         minusDS = zeros(2*Bdim+1,1); %-dS/d(p)
