@@ -11,8 +11,8 @@ function parameters(inputP)
     Na = 96;
     Nb = 80;
     Nc = 64;
-    R = 50;
-    mass = 1;
+    R = 32;
+    mass = 1/2;
     lambda = 1/10;
     theta = 0;
     
@@ -34,8 +34,8 @@ function parameters(inputP)
 		b = Lb/(Nb-1);
         La = (Na-1)*b;
         Lc = (Nc-1)*b;
-    elseif inputP=='p'
-        Lb = 1.0*R;
+    elseif inputP=='p' || inputP == 'q'
+        Lb = 1.1*R;
         angle = asin(Lb/R);
         Ltemp = 3*R;
         L = 3*Lb*tan(angle);

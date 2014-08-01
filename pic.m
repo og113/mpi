@@ -1,13 +1,27 @@
 %script to find the periodic instanton of the stable phi^4 with negative
 %mass
 
-aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+global d N Na Nb Nc L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
+global R X lambda mass v epsilon angle;
+
+aq.inputP = 'q'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
 aq.minValue = 32;
 aq.maxValue = 64;
 aq.totalLoops = 5;
+
+parameters(aq.inputP); %assigning global variables according to parameters.m
+if (L > Ltemp && Lb<=R) || (L < Ltemp && Lb>=R)%making sure to use the smaller of the two possible Ls
+	L = Ltemp;
+	a = L/(N-1.0);
+end
+
+fprintf('%8s','N', 'Na','Nb','Nc','L','Lb','R','mass','lambda'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+fprintf('\n');
+fprintf('%8g',N,Na,Nb,Nc,L,Lb,R,mass);
+fprintf('%8g\n',lambda);
 
 tempAq = askQuestions; %asking questions
 fields = fieldnames(tempAq);
@@ -17,16 +31,17 @@ for j=1:numel(fields) %using non-empty responses to questions to fill in aq
     end
 end
 inP = aq.inputP; %just because I write this a lot
-
-global d N Na Nb Nc L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
-global R X lambda mass v epsilon angle;
-parameters(inP); %assigning global variables according to parameters.m
-
-if L > Ltemp  %making sure to use the smaller of the two possible Ls
+parameters(inP);
+if (L > Ltemp && Lb<=R) || (L < Ltemp && Lb>=R)  %making sure to use the smaller of the two possible Ls
 	L = Ltemp;
 	a = L/(N-1.0);
 end
-
+negVal = 0;
+negVec = zeros(2*N*Nb+1,1);
+if inP == 'q'
+    negVal = input('input vacuum bubble negative eigenvalue: ');
+    negVec = input('input vacuum bubble negative eigenvector: ');
+end
 
 for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
     if strcmp(aq.loopResponse,'y') && strcmp(aq.parameterChoice,'N')
@@ -42,6 +57,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     alpha = 10; %determines range over which tanh(x) is used
+    amp = (Lb-R)/R; %determines admixture of negative mode - trial and error
     action = complex(2);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
@@ -77,7 +93,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     perturbReal((k+1)*Nb*N^(j-1)) = perturbReal((k+1)*Nb*N^(j-1)-1); %zero derivative at final time
                     perturbImag(k*Nb*N^(j-1)+1) = 0;
                     perturbImag((k+1)*Nb*N^(j-1)) = 0;
-                elseif inP == 'p' %periodic instanton
+                elseif inP == 'p' || inP == 'q' %periodic instanton - 'q' is the other approximation to the periodic instanton
                     perturbReal(k*Nb*N^(j-1)+1) = perturbReal(k*Nb*N^(j-1)+2); %zero time derivative at both time boundaries
                     perturbReal((k+1)*Nb*N^(j-1)) = perturbReal((k+1)*Nb*N^(j-1)-1);
                     perturbImag(k*Nb*N^(j-1)+1) = 0;
@@ -88,14 +104,14 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     end
     
     for j=0:(Bdim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
-        rhoSqrd = -eCoord(j,0)^2;
-        rho1Sqrd = -eCoord(j,0)^2; %explicitly 2d here as would need rho3 and rho4 for the 3d case etc.
-        rho2Sqrd = -eCoord(j,0)^2; 
-        for k=1:(d-1)
-            rhoSqrd = rhoSqrd + eCoord(j,k)^2;
-            rho1Sqrd = rho1Sqrd + (eCoord(j,k)+R*cos(angle))^2;
-            rho2Sqrd = rho2Sqrd + (eCoord(j,k)-R*cos(angle))^2;
-        end
+        t = eCoord(j,0);
+        x = eCoord(j,1);
+        rhoSqrd = -t^2;
+        rho1Sqrd = -t^2;
+        rho2Sqrd = -t^2; 
+        rhoSqrd = rhoSqrd + x^2;
+        rho1Sqrd = rho1Sqrd + (x+R*cos(angle))^2;
+        rho2Sqrd = rho2Sqrd + (x-R*cos(angle))^2;
         rho = real(sqrt(rhoSqrd)); %rho should be real even without the real()
         rho1 = real(sqrt(rho1Sqrd));
         rho2 = real(sqrt(rho2Sqrd));
@@ -106,7 +122,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 p(2*j+1) = minima(1);
             elseif inP == 'f'
                 p(2*j+1) = minima(3);
-            elseif inP == 'b'
+            elseif inP == 'b' || inP == 'q'
                 if rho<(R-alpha/mass)
                     p(2*j+1) = minima(1);
                 elseif rho>(R+alpha/mass)
@@ -130,6 +146,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     p(2*j+1) = minima(1); %if eCoord(j,1) == 0
                 end
             end
+            if inP == 'q'
+                p(2*j+1) = p(2*j+1) + amp*v*cos(sqrt(-negVal)*imag(t))*negVec(2*j+1); %adding the negative eigenvector
+                p(2*j+2) = p(2*j+2) + amp*v*cos(sqrt(-negVal)*imag(t))*negVec(2*j+2);
+            end
             if aq.perturbResponse == 'r' || aq.perturbResponse =='b'
                 p(2*j+1) = p(2*j+1) + perturbReal(j+1);
             end
@@ -141,7 +161,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     p(Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
-    if strcmp(inP,'p') %fixing input periodic instanton to have zero time derivative at time boundaries
+    if strcmp(inP,'p') || strcmp(inP,'q')%fixing input periodic instanton to have zero time derivative at time boundaries
         open = 1.0; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
             p(2*j*Nb+1) = (1.0-open)*p(2*j*Nb+1) + open*p(2*(j*Nb+1)+1);%intiial time real
@@ -185,7 +205,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         nonz = 0; %number of nonzero elements of DDS
         if inP == 'b' || inP == 't' || inP == 'f'
             nonz = 5*N^(d-1) + 4*N^(d-1)*(Nb-2)*(2*d+1) + 4*Bdim;
-        elseif inP == 'p'
+        elseif inP == 'p' || inP == 'q'
             nonz = 6*N^(d-1) + 4*N^(d-1)*(Nb-2)*(2*d+1) + 4*Bdim;
         else %number of nonzero elements when fixing zero mode and with full boundary conditions - check
             nonz = 5*Bdim*N^(d-1) + N^(d-1) + 4*(Nb-2)*N^(d-1)*(2*d+1);
@@ -215,7 +235,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 kinetic = kinetic - siteMeasure*(Cp(j+1-Nb*(N-1))-Cp(j+1))^2/a^2/2;
             end
             if t==(Nb-1)
-                if inP=='p' || inP=='b' %boundary conditions
+                if inP=='p' || inP=='q' || inP=='b' %boundary conditions
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1/b; %zero time derivative
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+1; DDSv(c3) = -1/b;
@@ -231,7 +251,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     if inP=='b' || inP=='t' || inP=='f'
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1; %zero change at boundary
                         DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
-                    elseif inP=='p'
+                    elseif inP=='p' || inP=='q'
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = -1/b; %zero time derivative
                         DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = 1/b;
@@ -299,6 +319,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         
         save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');
         %action
+        disp(num2str(runsCount)); %just to see where we are - can be dropped when all works
         
         small = norm(minusDS); %normalising problem
         smaller = small/(2*Bdim+1);
@@ -497,11 +518,12 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     
     if loop==0 %printing to terminal
-        fprintf('%12s','time', 'runs','d','N','X','Lb','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%8s','time', 'runs','d','N','X','Lb');
+        fprintf('%14s','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
-    fprintf('%12g',toc,runsCount,d,N,X,Lb,real(action));
-    fprintf('%12g\n',imag(action));
+    fprintf('%8g',toc,runsCount,d,N,X,Lb);
+    fprintf('%14g\n',real(action),imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
     fprintf(actionOut,'%12g',toc,runsCount,d,N,Nb,Na,X,Lb,real(action));
