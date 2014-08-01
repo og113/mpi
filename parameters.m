@@ -34,8 +34,8 @@ function parameters(inputP)
 		b = Lb/(Nb-1);
         La = (Na-1)*b;
         Lc = (Nc-1)*b;
-    elseif inputP=='p'
-        Lb = 1.0*R;
+    elseif inputP=='p' || inputP == 'q'
+        Lb = 1.1*R;
         angle = asin(Lb/R);
         Ltemp = 3*R;
         L = 3*Lb*tan(angle);

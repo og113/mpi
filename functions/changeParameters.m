@@ -75,7 +75,7 @@ function changeParameters(newParameter, parameterName, inputP)
             La = b*(Na-1);
             Lc = b*(Nc-1);
         end
-    elseif strcmp(inputP,'p') %specific changes to be made for the periodic instanton
+    elseif strcmp(inputP,'p') || strcmp(inputP,'q') %specific changes to be made for the periodic instanton
         Lb = 1.2*R/2; %Lt = T/2, where T is the period of the periodic instanton
         angle = asin(Lb/R);
         L = 3*Lb*tan(angle); %Lt*tan(angle) is thin-wall analytic width of periodic instanton bubble
