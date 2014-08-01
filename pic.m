@@ -319,7 +319,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         
         save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');
         %action
-        disp(num2str(runsCount)); %just to see where we are - can be dropped when all works
+        if (loop == 0)
+            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc)]); %just to see where we are for first run
+        end
         
         small = norm(minusDS); %normalising problem
         smaller = small/(2*Bdim+1);
@@ -518,11 +520,11 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     
     if loop==0 %printing to terminal
-        fprintf('%8s','time', 'runs','d','N','X','Lb');
+        fprintf('%6s','time', 'runs','d','N','X','Lb');
         fprintf('%14s','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
-    fprintf('%8g',toc,runsCount,d,N,X,Lb);
+    fprintf('%6g',toc,runsCount,d,N,X,Lb);
     fprintf('%14g\n',real(action),imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
