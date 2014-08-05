@@ -10,6 +10,14 @@ for fileNo = minFileNo:maxFileNo
 data = load(['data/picOut',num2str(fileNo),'.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
+negVal = 0;
+negVec = zeros(2*N*Nb+1,1);
+eigenData = load('data/eigens.mat'); %NEED TO CHANGE THIS ONCE WE CAN LOOP IN FILENO
+negVal = eigenData.D;
+negVec = eigenData.V;
+%negVal = input('input vacuum bubble negative eigenvalue: ');
+%negVec = input('input vacuum bubble negative eigenvector: ');
+
 disp(['Lb = T/2 = ', num2str(data.Lb)]); %asking input questions
 disp('angle = 0');
 maxTheta = input('input final value of angle (input 0 for no steps) ');
@@ -40,27 +48,27 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
-    runsTest = 1;
-    closeness = 1e-4;
+    actionTest = 1;
+    closenessA = 1e-4;
+    closenessV = 1e-2;
     minRuns = 3;
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
-    while (runsTest > closeness || runsCount<minRuns) && Xwait%beginning newton-raphson loop
-        runsTest = abs(action - actionLast)/abs(actionLast); %note this won't work if action goes to zero
+    while (actionTest(end) > closenessA || vectorTest(end) > closenessV || runsCount<minRuns) && Xwait%beginning newton-raphson loop
+        actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
         runsCount = runsCount + 1;
         actionLast = action;
         
         minusDS = zeros(2*Tdim+1,1); %-dS/d(p)
-        Chi0 = complex(zeros(N,1)); %to fix zero mode, alla kuznetsov, dl[7], though not quite
+        Chi0 = complex(zeros(Nb*N,1)); %to fix zero mode, alla kuznetsov, dl[7], though not quite
 
-        for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(NT-1)
-            if j~=(N-1)
-                Chi0(j+1) = (p(2*((j+2)*NT-1)+1)+1i*p(2*((j+2)*NT-1)+1)-p(2*((j+1)*NT-1)+1)+1i*p(2*((j+1)*NT-1)+1))/a; %%note only use real derivative - this is a fudge due to initial input
-            else
-                Chi0(j+1) = (p(2*(NT-1)+1)+1i*p(2*(NT-1)+1)-p(2*(N*NT-1)+1)+1i*p(2*(N*NT-1)+1))/a;
-            end
+        for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
+            pos = (j+1)*Nb-1;
+            Chi0(pos+1) = negVec(2*pos+1);
+            %Chi0(pos+1) = p(2*neigh(pos,1,1,Nb)+1)-p(2*neigh(pos,1,-1,Nb)+1);
+            %Chi0(pos-1+1) = p(2*neigh(pos-1,1,1,Nb)+1)-p(2*neigh(pos-1,1,-1,Nb)+1);
         end
-        Chi0 = Chi0/norm(Chi0);
+        %Chi0 = v*Chi0/norm(Chi0);
         
         nonz = 6*NT*(N-2) + 4*Tdim; %number of nonzero elements of DDS - an overestimate
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
@@ -79,6 +87,15 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             siteMeasure = a*tDt(j); %for sites in time
             linkMeasure = a*dtj; %for links in time
             
+            if (t>=Na) && (t<(Na+Nb)) %fixing zero mode
+                if Chi0(t-Na+x*Nb+1)>1e-16
+                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = a*Chi0(t-Na+x*Nb+1);
+                    DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*j+1; DDSv(c3) = a*Chi0(t-Na+x*Nb+1);  
+                    minusDS(2*j+1) = minusDS(2*j+1) - a*Chi0(t-Na+x*Nb+1)*p(2*Tdim+1);
+                    minusDS(2*Tdim+1) = minusDS(2*Tdim+1) - a*Chi0(t-Na+x*Nb+1)*p(2*j+1);
+                end
+            end
+            
             potL = potL - siteMeasure*(lambda/8)*(Cp(j+1)^2-v^2)^2;
             potE = potE - siteMeasure*epsilon*(Cp(j+1)-v)/v/2;
             if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
@@ -89,9 +106,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% boundary conditions
             if t==(NT-1)
                 DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part of field at final time boundary
-                DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+2; DDSv(c3) = 1; %zero imaginary part of time derivative at final time boundary - with other condition
-                DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = real(siteMeasure*Chi0(x+1)); %zero mode lagrange constraint
-                DDSm(c3) = 2*j+2; DDSn(c3) = 2*Tdim+1; DDSv(c3) = imag(siteMeasure*Chi0(x+1)); %the constraint is real but its derivative wrt phi may be complex
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+2; DDSv(c3) = 1; %zero imaginary part of time derivative at final time boundary - with other condition               
             else
                 kinetic= kinetic + linkMeasure*((Cp(j+2) - Cp(j+1))/dtj)^2/2;
                 if t==0 && theta>0
@@ -164,14 +179,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                 end
             end
         end
-        for j=0:(N-1) %adding last two rows, with lagrange multiplier terms
-            minusDS(2*Tdim+1) = minusDS(2*Tdim+1) - real(a*b*Chi0(j+1)*Cp((j+1)*NT));
-            
-            DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*((j+1)*NT-1)+1; DDSv(c3) = real(a*b*Chi0(j+1)); %at t=Nt-1
-            DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*((j+1)*NT-1)+2; DDSv(c3) = -imag(a*b*Chi0(j+1));                          
-        end
         clear c3; %returning persistent output of c3 to 1
-        kinetic = 2*kinetic; potL = 2*potL; potE = 2*potE; %as we only calculated half of bubble in time direction
         action = kinetic + potL + potE;
         DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
         DDSn(DDSv==0) = [];
@@ -207,19 +215,46 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         W = -lambda*W;
         
         
-        %save( ['data/main',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
+        save( ['data/mainEarly',num2str(runsCount),num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
 
-        [orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        small = norm(minusDS); %normalising problem
+        smaller = small/(2*Bdim+1);
+        cutoff = 1e-6;
+        normed = 0;
+        if smaller < cutoff
+           Xwait = 0;
+           break;
+        else
+            normed = 1;
+            minusDS = minusDS/small;
+            DDS = DDS/small;
+        end
         
-        setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
-        setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
-        setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
-        setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
-        [Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
+        limit = 1e12;
+        c = condest(DDS); %finding estimate and bound for condition number
+        eigen = eigs(DDS,1,0);
+        if c>limit || abs(eigen)<1/limit
+            singular = svds(DDS,1,0);
+            fprintf('%12s','condest = ');
+            fprintf('%12g\n',c);
+            fprintf('%12s','smallest singular value is = ');
+            fprintf('%12g\n',singular);
+            fprintf('%12s','smallest eigenvalue is = ');           
+            fprintf('%12g\n',eigen);
+        end
+        
+        %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
+        
+        %setup.type = 'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
+        %setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
+        %setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
+        %setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
+        %[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
 
-        tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
-        maxit = 50; %max number of iterations
-        [delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        %tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
+        %maxit = 50; %max number of iterations
+        %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
+        flag = 0;
         if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([delta,flag] -> [delta,flag,relres])
             if flag == 1
                 disp('linear solver interated maxit times but did not converge!');
@@ -241,7 +276,20 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             end
         end
 
-        p = p + delta(orderCol)'; %p -> p'
+        delta = DDS\minusDS; %this is where the magic happens - direct gaussian elimination
+        
+        if normed
+            minusDS = minusDS*small;
+            DDS = DDS*small;
+        end
+        
+        vectorTest = [vectorTest, norm(delta)/norm(p)];
+        
+        if size(delta,1)==1
+            p = p + delta'; %p -> p'
+        else
+            p = p + delta;
+        end
         
         Cp = vecComplex(p,Tdim); 
 
