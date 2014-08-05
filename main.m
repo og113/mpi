@@ -10,8 +10,6 @@ for fileNo = minFileNo:maxFileNo
 data = load(['data/picOut',num2str(fileNo),'.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
-negVal = 0;
-negVec = zeros(2*N*Nb+1,1);
 eigenData = load('data/eigens.mat'); %NEED TO CHANGE THIS ONCE WE CAN LOOP IN FILENO
 negVal = eigenData.D;
 negVec = eigenData.V;
@@ -43,12 +41,12 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     
     tic; %starting the clock
     
-    alpha = 5; %determines range over which tanh(x) is used
     action = complex(2);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
     actionTest = 1;
+    vectorTest = 1;
     closenessA = 1e-4;
     closenessV = 1e-2;
     minRuns = 3;
@@ -63,14 +61,15 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         Chi0 = complex(zeros(Nb*N,1)); %to fix zero mode, alla kuznetsov, dl[7], though not quite
 
         for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
-            pos = (j+1)*Nb-1;
-            Chi0(pos+1) = negVec(2*pos+1);
-            %Chi0(pos+1) = p(2*neigh(pos,1,1,Nb)+1)-p(2*neigh(pos,1,-1,Nb)+1);
+            posE = (j+1)*Nb-1;
+            posT = (j+1)*NT-1;
+            %Chi0(pos+1) = negVec(2*pos+1);
+            Chi0(posE+1) = p(2*neigh(posT,1,1,NT)+1)-p(2*neigh(posT,1,-1,NT)+1);
             %Chi0(pos-1+1) = p(2*neigh(pos-1,1,1,Nb)+1)-p(2*neigh(pos-1,1,-1,Nb)+1);
         end
         %Chi0 = v*Chi0/norm(Chi0);
         
-        nonz = 6*NT*(N-2) + 4*Tdim; %number of nonzero elements of DDS - an overestimate
+        nonz = (2*2*2+2)*NT*(N-2) + 6*Tdim + 4*N*N; %number of nonzero elements of DDS - an overestimate
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
@@ -215,10 +214,14 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         W = -lambda*W;
         
         
-        save( ['data/mainEarly',num2str(runsCount),num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
-
+        save( ['data/mainEarly',num2str(loop),num2str(runsCount),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
+        if 1 == 1 %loop==0
+            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', vectorTest: ',num2str(vectorTest(end))]); %just to see where we are for first run
+        end
+        
+        
         small = norm(minusDS); %normalising problem
-        smaller = small/(2*Bdim+1);
+        smaller = small/(2*Tdim+1);
         cutoff = 1e-6;
         normed = 0;
         if smaller < cutoff
@@ -284,7 +287,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         end
         
         vectorTest = [vectorTest, norm(delta)/norm(p)];
-        
+          
         if size(delta,1)==1
             p = p + delta'; %p -> p'
         else
@@ -298,7 +301,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
 
     end %closing newton-raphson loop
     
-    if loop==0 %printing to terminal
+    if 1==1 %loop==0 %printing to terminal
         fprintf('%6s','time', 'runs','N','Na','Nb', 'Nc', 'mass','lambda','R','Lb','theta'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('%12s','num','erg','re(action)','im(action)','W');
         fprintf('\n');

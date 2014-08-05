@@ -60,14 +60,14 @@ function changeParameters(newParameter, parameterName, inputP)
             La = (Na-1)*b;
             Lc = (Nc-1)*b;
         end
-    elseif strcmp(inputP,'p') || strcmp(inputP,'q') %specific changes to be made for the periodic instanton
+    elseif strcmp(inputP,'p') || strcmp(inputP,'q') || strcmp(inputP,'i') %specific changes to be made for the periodic instanton
         if strcmp(parameterName,'R')
             Lb = Lb*(newParameter/R);
             R = newParameter;
             angle = asin(Lb/R);
             L = 3*Lb*tan(angle);
-            Ltemp = 3*R;
-            if (L > Ltemp && Lb<=R) || (L < Ltemp && Lb>=R)%making sure to use the smaller of the two possible Ls
+            Ltemp = 4*R;
+            if (L > abs(Ltemp) && Lb<=R) || (L < abs(Ltemp) && Lb>=R)%making sure to use the smaller of the two possible Ls
                 L = Ltemp;
             end
             a = L/(N-1);
@@ -80,7 +80,7 @@ function changeParameters(newParameter, parameterName, inputP)
             Lb = newParameter;
             angle = asin(Lb/R);
             L = 3*Lb*tan(angle);
-            Ltemp = 3.5*R;
+            Ltemp = 4*R;
             if (L > Ltemp && Lb<=R) || (L < Ltemp && Lb>=R)%making sure to use the smaller of the two possible Ls
                 L = Ltemp;
             end

@@ -4,7 +4,7 @@
 global d N Na Nb Nc L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle amp;
 
-aq.inputP = 'q'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.inputP = 'i'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
@@ -32,12 +32,15 @@ parameters(inP);
 
 negVal = 0;
 negVec = zeros(2*N*Nb+1,1);
-if inP == 'q' || inP == 'p'
+if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i')
     eigenData = load('data/eigens.mat');
     negVal = eigenData.D;
     negVec = eigenData.V;
     %negVal = input('input vacuum bubble negative eigenvalue: ');
     %negVec = input('input vacuum bubble negative eigenvector: ');
+end
+if strcmp(inP,'i')
+    inputData = load('data/good/bub_Lb39.mat');
 end
 
 for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
@@ -48,14 +51,16 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         loopParameter = aq.minValue + loop*(aq.maxValue - aq.minValue)/(aq.totalLoops-1);
         changeParameters (loopParameter,aq.parameterChoice, inP);
     end
-    
+    if strcmp(inP,'i') && loop>0
+        inputData = load(['data/picOut',num2str(loop-1),'.mat']);
+    end
     tic; %starting the clock
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     alpha = 10; %determines range over which tanh(x) is used
-    if ~strcmp(inP,'amp')
-        amp = (Lb-R)/R; %determines admixture of negative mode - trial and error
+    if ~strcmp(aq.parameterChoice,'amp')
+        amp = 2*(Lb-R)/R; %determines admixture of negative mode - trial and error
     end
     action = complex(2);
     
@@ -93,7 +98,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     perturbReal((k+1)*Nb*N^(j-1)) = perturbReal((k+1)*Nb*N^(j-1)-1); %zero derivative at final time
                     perturbImag(k*Nb*N^(j-1)+1) = 0;
                     perturbImag((k+1)*Nb*N^(j-1)) = 0;
-                elseif inP == 'p' || inP == 'q' %periodic instanton - 'q' is the other approximation to the periodic instanton
+                elseif inP == 'p' || inP == 'q' || inP == 'i' %periodic instanton - 'q' is the other approximation to the periodic instanton
                     perturbReal(k*Nb*N^(j-1)+1) = perturbReal(k*Nb*N^(j-1)+2); %zero time derivative at both time boundaries
                     perturbReal((k+1)*Nb*N^(j-1)) = perturbReal((k+1)*Nb*N^(j-1)-1);
                     perturbImag(k*Nb*N^(j-1)+1) = 0;
@@ -118,11 +123,11 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         if R<alpha/mass
             disp(['X = R*mass is too small. not possible to give thinwall input. it should be less that ',num2str(alpha)]);
         else
-            if inP =='t'
+            if strcmp(inP,'t')
                 p(2*j+1) = minima(1);
-            elseif inP == 'f'
+            elseif strcmp(inP,'f')
                 p(2*j+1) = minima(3);
-            elseif inP == 'b' || inP == 'q'
+            elseif strcmp(inP,'b') || strcmp(inP,'q')
                 if rho<(R-alpha/mass)
                     p(2*j+1) = minima(1);
                 elseif rho>(R+alpha/mass)
@@ -131,7 +136,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(3)-minima(1))*tanh(mass*(rho-R)/2)/2.0;
                     %%pNeg(2*j+1) = v/cosh(mass*(rho-R)/2)^2;
                 end
-            elseif inP == 'p'
+            elseif strcmp(inP,'p')
                 if rho1<(R-alpha/mass) && rho2<(R-alpha/mass)
                     p(2*j+1) = minima(1);
                 elseif rho1>(R+alpha/mass) || rho2>(R+alpha/mass)
@@ -145,8 +150,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 else
                     p(2*j+1) = minima(1); %if eCoord(j,1) == 0
                 end
+            elseif strcmp(inP,'i')
+                p(2*j+1) = inputData.p(2*j+1);
             end
-            if inP == 'q'
+            if strcmp(inP,'q') || (strcmp(inP,'i') && strcmp(inputData.inP,'b'))
                 p(2*j+1) = p(2*j+1) + amp*cos(sqrt(-negVal)*imag(t))*negVec(2*j+1); %adding the negative eigenvector
                 p(2*j+2) = p(2*j+2) + amp*cos(sqrt(-negVal)*imag(t))*negVec(2*j+2);
             end
@@ -162,7 +169,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     p(Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
     if (strcmp(inP,'p') || strcmp(inP,'q')) && 1 %fixing input periodic instanton to have zero time derivative at time boundaries
-        open = 0.5; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
+        open = 0; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
             p(2*j*Nb+1) = (1.0-open)*p(2*j*Nb+1) + open*p(2*(j*Nb+1)+1);%intiial time real
             p(2*(j*Nb+1)+1) = p(2*j*Nb+1);
@@ -193,8 +200,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
 
         for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
             pos = (j+1)*Nb-1;
-            Chi0(pos+1) = negVec(2*pos+1);
-            %Chi0(pos+1) = p(2*neigh(pos,1,1,Nb)+1)-p(2*neigh(pos,1,-1,Nb)+1);
+            %Chi0(pos+1) = negVec(2*pos+1);
+            Chi0(pos+1) = p(2*neigh(pos,1,1,Nb)+1)-p(2*neigh(pos,1,-1,Nb)+1);
             %Chi0(pos-1+1) = p(2*neigh(pos-1,1,1,Nb)+1)-p(2*neigh(pos-1,1,-1,Nb)+1);
         end
         %Chi0 = v*Chi0/norm(Chi0);
@@ -202,7 +209,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         nonz = 0; %number of nonzero elements of DDS
         if inP == 'b' || inP == 't' || inP == 'f'
             nonz = 5*N^(d-1) + 4*N^(d-1)*(Nb-2)*(2*d+1) + 4*Bdim;
-        elseif inP == 'p' || inP == 'q'
+        elseif inP == 'p' || inP == 'q' || inP == 'i'
             nonz = 6*N^(d-1) + 4*N^(d-1)*(Nb-2)*(2*d+1) + 4*Bdim;
         else %number of nonzero elements when fixing zero mode and with full boundary conditions - check
             nonz = 5*Bdim*N^(d-1) + N^(d-1) + 4*(Nb-2)*N^(d-1)*(2*d+1);
@@ -225,11 +232,11 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             linkMeasure = a*dtj; %for links in time
             
             if Chi0(j+1)>1e-16 %zero mode lagrange constraint
-                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = a*Chi0(j+1);
-                    DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*j+1; DDSv(c3) = a*Chi0(j+1);  
-                    minusDS(2*j+1) = minusDS(2*j+1) - a*Chi0(j+1)*p(2*Bdim+1);
-                    minusDS(2*Bdim+1) = minusDS(2*Bdim+1) - a*Chi0(j+1)*p(2*j+1);                      
-                end
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = a*Chi0(j+1);
+                DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*j+1; DDSv(c3) = a*Chi0(j+1);  
+                minusDS(2*j+1) = minusDS(2*j+1) - a*Chi0(j+1)*p(2*Bdim+1);
+                minusDS(2*Bdim+1) = minusDS(2*Bdim+1) - a*Chi0(j+1)*p(2*j+1);                      
+            end
             
             potL = potL - siteMeasure*(lambda/8)*(Cp(j+1)^2-v^2)^2;
             potE = potE - siteMeasure*epsilon*(Cp(j+1)-v)/v/2;
@@ -239,7 +246,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 kinetic = kinetic - siteMeasure*(Cp(j+1-Nb*(N-1))-Cp(j+1))^2/a^2/2;
             end
             if t==(Nb-1)
-                if inP=='p' || inP=='q' || inP=='b' %boundary conditions
+                if inP=='p' || inP=='q' || inP=='b' || inP == 'i'%boundary conditions
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1/b; %zero time derivative
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+1; DDSv(c3) = -1/b;
@@ -253,7 +260,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     if inP=='b' || inP=='t' || inP=='f'
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = 1; %zero change at boundary
                         DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1;
-                    elseif inP=='p' || inP=='q'
+                    elseif inP=='p' || inP=='q' || inP =='i'
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*j+1; DDSv(c3) = -1/b; %zero time derivative
                         DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = 1/b;
@@ -309,9 +316,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         DDS = sparse(DDSm,DDSn,DDSv,2*Bdim+1,2*Bdim+1);
 
         
-        save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');
+        save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc','inP');
         %action
-        if (loop == 0)
+        if 1 == 1 %loop==0
             disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', vectorTest: ',num2str(vectorTest(end))]); %just to see where we are for first run
         end
         
@@ -510,20 +517,20 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     tp(end+1) = p(2*Bdim+1);
     
     
-    if loop==0 %printing to terminal
-        fprintf('%9s','time', 'runs','N','Nb','L','Lb','R','mass','lambda','epsilon');
-        fprintf('%14s','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+    if 1==1 %loop==0 %printing to terminal
+        fprintf('%8s','time', 'runs','N','Nb','L','Lb','R','mass','lambda');
+        fprintf('%14s','epsilon','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
-    fprintf('%9g',toc,runsCount,N,Nb,L,Lb,R,mass,lambda,epsilon);
-    fprintf('%14g%14g\n',real(action),imag(action));
+    fprintf('%8g',toc,runsCount,N,Nb,L,Lb,R,mass,lambda);
+    fprintf('%14g%14g%14g\n',epsilon,real(action),imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,d,N,Nb,Na,X,Lb,real(action));
-    fprintf(actionOut,'%12g\n',imag(action));
+    fprintf(actionOut,'%14g',toc,runsCount,d,N,Nb,Na,X,Lb,real(action));
+    fprintf(actionOut,'%14g\n',imag(action));
     fclose(actionOut);
     
-    save( ['data/picOut',num2str(loop),'.mat'], 'tCp', 'tp', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc');%saving phi, DDS and minusDS to file
+    save( ['data/picOut',num2str(loop),'.mat'], 'p', 'tCp', 'tp', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc','inP');%saving phi, DDS and minusDS to file
     
 end%closing parameter loop
 
