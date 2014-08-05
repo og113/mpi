@@ -48,24 +48,22 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     actionTest = 1;
     vectorTest = 1;
     closenessA = 1e-4;
-    closenessV = 1e-2;
+    closenessV = 1e-3;
     minRuns = 3;
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
     while (actionTest(end) > closenessA || vectorTest(end) > closenessV || runsCount<minRuns) && Xwait%beginning newton-raphson loop
-        actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
         runsCount = runsCount + 1;
-        actionLast = action;
         
         minusDS = zeros(2*Tdim+1,1); %-dS/d(p)
         Chi0 = complex(zeros(Nb*N,1)); %to fix zero mode, alla kuznetsov, dl[7], though not quite
 
         for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
             posE = (j+1)*Nb-1;
-            posT = (j+1)*NT-1;
-            %Chi0(pos+1) = negVec(2*pos+1);
+            posT = (Na+Nb-1)+j*NT;
+            %Chi0(posE+1) = negVec(2*posE+1);
             Chi0(posE+1) = p(2*neigh(posT,1,1,NT)+1)-p(2*neigh(posT,1,-1,NT)+1);
-            %Chi0(pos-1+1) = p(2*neigh(pos-1,1,1,Nb)+1)-p(2*neigh(pos-1,1,-1,Nb)+1);
+            %Chi0(posE-1+1) = p(2*neigh(posT-1,1,1,NT)+1)-p(2*neigh(posT-1,1,-1,NT)+1);
         end
         %Chi0 = v*Chi0/norm(Chi0);
         
@@ -87,56 +85,57 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             linkMeasure = a*dtj; %for links in time
             
             if (t>=Na) && (t<(Na+Nb)) %fixing zero mode
-                if Chi0(t-Na+x*Nb+1)>1e-16
-                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = a*Chi0(t-Na+x*Nb+1);
-                    DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*j+1; DDSv(c3) = a*Chi0(t-Na+x*Nb+1);  
-                    minusDS(2*j+1) = minusDS(2*j+1) - a*Chi0(t-Na+x*Nb+1)*p(2*Tdim+1);
-                    minusDS(2*Tdim+1) = minusDS(2*Tdim+1) - a*Chi0(t-Na+x*Nb+1)*p(2*j+1);
+                posE = t-Na+x*Nb;
+                if abs(Chi0(posE+1))>1e-16
+                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = a*Chi0(posE+1);
+                    DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*j+1; DDSv(c3) = a*Chi0(posE+1);  
+                    minusDS(2*j+1) = minusDS(2*j+1) - a*Chi0(posE+1)*p(2*Tdim+1);
+                    minusDS(2*Tdim+1) = minusDS(2*Tdim+1) - a*Chi0(posE+1)*p(2*j+1);
                 end
             end
             
             potL = potL - siteMeasure*(lambda/8)*(Cp(j+1)^2-v^2)^2;
             potE = potE - siteMeasure*epsilon*(Cp(j+1)-v)/v/2;
-            if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
-                kinetic = kinetic - siteMeasure*(Cp(j+NT+1)-Cp(j+1))^2/a^2/2;
-            elseif x~=(N-1) %avoiding using neigh and modulo as its slow
-                kinetic = kinetic - siteMeasure*(Cp(j+1-NT*(N-1))-Cp(j+1))^2/a^2/2;
-            end
+            kinetic = kinetic - siteMeasure*(Cp(neigh(j,1,1,NT)+1)-Cp(j+1))^2/a^2/2;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% boundary conditions
             if t==(NT-1)
+                %zero eigenvalue due to these boundary conditions
                 DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part of field at final time boundary
                 DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+2; DDSv(c3) = 1; %zero imaginary part of time derivative at final time boundary - with other condition               
             else
                 kinetic= kinetic + linkMeasure*((Cp(j+2) - Cp(j+1))/dtj)^2/2;
-                if t==0 && theta>0
-                    for k=1:(2*d-1)
-                        sign = (-1)^(k-1);
-                        %%deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
-                        direc = floor(k/2);
-                        if direc == 0
-                            minusDS(2*j+1) = minusDS(2*j+1) + real(a*Cp(j+sign+1)/dtj);
-                            minusDS(2*j+2) = minusDS(2*j+2) + imag(a*Cp(j+sign+1)/dtj);
-                        else
-                            neighb = neigh(j,direc,sign,NT);
-                            minusDS(2*j+1) = minusDS(2*j+1) - real(siteMeasure*Cp(neighb+1)/a^2); %note Dt(j) = Dt(j+Nt) etc.
-                            minusDS(2*j+2) = minusDS(2*j+2) - imag(siteMeasure*Cp(neighb+1)/a^2);
-                        end
-                    end
-                    temp0 = a/dtj;
-                    temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
-                    
-                    minusDS(2*j+1) = minusDS(2*j+1) + real(temp1 - temp0*Cp(j+1));
-                    minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
-                    
-                    for k=0:(N-1)
-                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+1; DDSv(c3) = real(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
-                        DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+2; DDSv(c3) = real(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
-                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+1; DDSv(c3) = imag(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
-                        DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+2; DDSv(c3) = imag(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
-                    end
-                elseif t==0
+                if t==0
+                    if abs(theta)<1e-16
+                        %zero eigenvalue due to these boundary conditions
                         DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j+1)+2; DDSv(c3) = 1; %zero imaginary time derivative - with below condition
                         DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part
+                    else
+                        for k=1:(2*d-1)
+                            sign = (-1)^(k-1);
+                            %%deltaSign = (sign-1)/2; %deltaSign=0 if sign=+1 and deltaSign=-1 if sign=-1
+                            direc = floor(k/2);
+                            if direc == 0
+                                minusDS(2*j+1) = minusDS(2*j+1) + real(a*Cp(j+sign+1)/dtj);
+                                minusDS(2*j+2) = minusDS(2*j+2) + imag(a*Cp(j+sign+1)/dtj);
+                            else
+                                neighb = neigh(j,direc,sign,NT);
+                                minusDS(2*j+1) = minusDS(2*j+1) - real(siteMeasure*Cp(neighb+1)/a^2); %note Dt(j) = Dt(j+Nt) etc.
+                                minusDS(2*j+2) = minusDS(2*j+2) - imag(siteMeasure*Cp(neighb+1)/a^2);
+                            end
+                        end
+                        temp0 = a/dtj;
+                        temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
+
+                        minusDS(2*j+1) = minusDS(2*j+1) + real(temp1 - temp0*Cp(j+1));
+                        minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
+
+                        for k=0:(N-1)
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+1; DDSv(c3) = real(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+2; DDSv(c3) = real(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+1; DDSv(c3) = imag(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+2; DDSv(c3) = imag(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
+                        end
+                    end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% end of boundary conditions
                 else
                     dtjm = tdt(j-1);
@@ -188,7 +187,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         erg = 0;
         num = 0;
         W = 0;
-        if theta==0
+        if abs(theta)<1e-16
             for j=0:(N-1)
                 for k=0:(N-1)
                     num = num + Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1) ...
@@ -214,15 +213,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         W = -lambda*W;
         
         
-        save( ['data/mainEarly',num2str(loop),num2str(runsCount),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
-        if 1 == 1 %loop==0
-            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', vectorTest: ',num2str(vectorTest(end))]); %just to see where we are for first run
-        end
-        
-        
         small = norm(minusDS); %normalising problem
         smaller = small/(2*Tdim+1);
-        cutoff = 1e-6;
+        cutoff = 1e-16;
         normed = 0;
         if smaller < cutoff
            Xwait = 0;
@@ -287,6 +280,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         end
         
         vectorTest = [vectorTest, norm(delta)/norm(p)];
+        actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
+        actionLast = action;
           
         if size(delta,1)==1
             p = p + delta'; %p -> p'
@@ -299,6 +294,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         stopTime = toc;
         [Xwait] = convergenceQuestions(runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
+        save( ['data/mainEarly',num2str(loop),num2str(runsCount),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
+        if 1 == 1 %loop==0
+            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', vectorTest: ',num2str(vectorTest(end))]); %just to see where we are for first run
+        end
+        
     end %closing newton-raphson loop
     
     if 1==1 %loop==0 %printing to terminal

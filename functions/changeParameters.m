@@ -30,8 +30,8 @@ function changeParameters(newParameter, parameterName, inputP)
         NT = N + Na + Nb + Nc;
         a = L/(N-1);
         b = Lb/(Nb-1);
-        La = (Na-1)*b;
-        Lc = (Nc-1)*b;
+        La = Na*b;
+        Lc = Nc*b;
         Adim = N*Na;
         Bdim = N*Nb;
         Cdim = N*Nc;
@@ -52,13 +52,13 @@ function changeParameters(newParameter, parameterName, inputP)
 			v =  mass/sqrt(lambda);
 			a = L/(N-1);
 			b = Lb/(Nb-1);
-            La = (Na-1)*b;
-            Lc = (Nc-1)*b;
+            La = Na*b;
+            Lc = Nc*b;
         elseif strcmp(parameterName,'Lb')
             Lb = newParameter;
             b = Lb/(Nb-1);
-            La = (Na-1)*b;
-            Lc = (Nc-1)*b;
+            La = Na*b;
+            Lc = Nc*b;
         end
     elseif strcmp(inputP,'p') || strcmp(inputP,'q') || strcmp(inputP,'i') %specific changes to be made for the periodic instanton
         if strcmp(parameterName,'R')
@@ -72,7 +72,8 @@ function changeParameters(newParameter, parameterName, inputP)
             end
             a = L/(N-1);
             b = Lb/(Nb-1);
-            La = (Na-1)*b;
+            La = Na*b;
+            Lc = Nc*b;
             X = mass*R;
 			epsilon = 2*mass^3/lambda/R/3;
 			v =  mass/sqrt(lambda);
@@ -86,8 +87,8 @@ function changeParameters(newParameter, parameterName, inputP)
             end
             a = L/(N-1);
             b = Lb/(Nb-1);
-            La = b*(Na-1);
-            Lc = b*(Nc-1);
+            La = b*Na;
+            Lc = b*Nc;
         end
     else
         disp('change parameters error');

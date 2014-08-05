@@ -28,14 +28,14 @@ function parameters(inputP)
     
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'
-        Lb = 40.0;
+        Lb = 38.4;
 		L = 4*R;
 		a = L/(N-1);
-		b = Lb/(Nb-1);
-        La = (Na-1)*b;
-        Lc = (Nc-1)*b;
+		b = Lb/(Nb-1); %b section includes both corner points
+        La = Na*b;
+        Lc = Nc*b;
     elseif inputP=='p' || inputP == 'q' || inputP == 'i'
-        Lb = 40.0;
+        Lb = 38.4;
         angle = asin(Lb/R);
         Ltemp = 4*R;
         L = 3*Lb*tan(angle); %need L larger than La and Lc to fit close to light-like waves
@@ -44,9 +44,9 @@ function parameters(inputP)
             a = L/(N-1.0);
         end
         a = L/(N-1);
-		b = Lb/(Nb-1);
-        La = (Na-1)*b;
-        Lc = (Nc-1)*b;
+		b = Lb/(Nb-1); %b section includes both corner points
+        La = Na*b;
+        Lc = Nc*b;
     else
         disp('parameter error');
     end

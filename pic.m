@@ -40,7 +40,7 @@ if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i')
     %negVec = input('input vacuum bubble negative eigenvector: ');
 end
 if strcmp(inP,'i')
-    inputData = load('data/good/bub_Lb39.mat');
+    inputData = load('data/pic_Lb384.mat');
 end
 
 for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
@@ -69,7 +69,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     actionTest = 1;
     vectorTest = 1;
     closenessA = 1e-4;
-    closenessV = 1e-2;
+    closenessV = 1e-3;
     minRuns = 3;
     
     p = zeros(2*Bdim+1,1); %phi, in the euclidean domain
@@ -188,10 +188,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
     while (actionTest(end) > closenessA || vectorTest(end) > closenessV || runsCount<minRuns) && Xwait%beginning newton-raphson loop
-        actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
         runsCount = runsCount + 1;
-        %disp(num2str(runsCount)); %just to see where we are
-        actionLast = action;
         
         minusDS = zeros(2*Bdim+1,1); %-dS/d(p)
         Cp = vecComplex(p,Bdim); %complex p, excluding real lagrange muLbiplier
@@ -231,7 +228,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             siteMeasure = a*Dtj; %for sites in time
             linkMeasure = a*dtj; %for links in time
             
-            if Chi0(j+1)>1e-16 %zero mode lagrange constraint
+            if abs(Chi0(j+1))>1e-16 %zero mode lagrange constraint
                 DDSm(c3) = 2*j+1; DDSn(c3) = 2*Bdim+1; DDSv(c3) = a*Chi0(j+1);
                 DDSm(c3) = 2*Bdim+1; DDSn(c3) = 2*j+1; DDSv(c3) = a*Chi0(j+1);  
                 minusDS(2*j+1) = minusDS(2*j+1) - a*Chi0(j+1)*p(2*Bdim+1);
@@ -314,17 +311,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
         DDS = sparse(DDSm,DDSn,DDSv,2*Bdim+1,2*Bdim+1);
-
-        
-        save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc','inP');
-        %action
-        if 1 == 1 %loop==0
-            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', vectorTest: ',num2str(vectorTest(end))]); %just to see where we are for first run
-        end
         
         small = norm(minusDS); %normalising problem
         smaller = small/(2*Bdim+1);
-        cutoff = 1e-6;
+        cutoff = 1e-16;
         normed = 0;
         if smaller < cutoff
            Xwait = 0;
@@ -400,6 +390,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         end
         
         vectorTest = [vectorTest, norm(delta)/norm(p)];
+        actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
+        actionLast = action;
         
         if size(delta,1)==1
             p = p + delta'; %p -> p'
@@ -413,85 +405,91 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
         aq = Xaq;
         
+        save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc','inP');
+        %action
+        if 1 == 1 %loop==0
+            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', vectorTest: ',num2str(vectorTest(end))]); %just to see where we are for first run
+        end
+        
     end %closing newton-raphson loop
 
     %propagating solution back in minkowskian time
     %A1. initialize mp==mphi using last point of ephi and zeros- use complex phi
-    ap = complex(zeros(Adim,1));
+    ap = complex(zeros(Adim+N,1)); %extra N is to include boundary point
     for j=0:(N-1)
-        ap(j*Na+1) = p(2*(j*Nb)+1) + 1i*p(2*(j*Nb)+2);%%roots(1);%%
+        ap(j*(Na+1)+1) = p(2*(j*Nb)+1) + 1i*p(2*(j*Nb)+2);%%roots(1);%%
     end
 
     %A2. initialize vel - defined at half steps, first step being at t=-1/2,
     %vel(t+1/2) := (p(t+1)-p(t))/dt
-    vel = complex(zeros(Adim,1));
+    vel = complex(zeros(Adim+N,1));
     dtau = -b;
     Dt0 = dtau;%%b/2*(-1+1i*up); - this is surely wrong!!
     for j=0:(N-1)
-        k = j*Na;
+        k = j*(Na+1);
         vel(k+1) = 0; %%due to boundary condition
     end
 
     
     %A3. initialize acc using phi and expression from equation of motion and zeros-
     %complex
-    acc = complex(zeros(Adim,1));
+    acc = complex(zeros(Adim+N,1));
     for j=0:(N-1)
-        k = j*Na;
-        acc(k+1) = ((Dt0/a^2)*(ap(neigh(k,1,1,Na)+1)+ap(neigh(k,1,-1,Na)+1)-2*ap(k+1)) ...
+        k = j*(Na+1);
+        acc(k+1) = ((Dt0/a^2)*(ap(neigh(k,1,1,Na+1)+1)+ap(neigh(k,1,-1,Na+1)+1)-2*ap(k+1)) ...
             -(lambda*Dt0/2)*ap(k+1)*(ap(k+1)^2-v^2) - epsilon*Dt0/2/v)/dtau;
     end
 
     %A7. run loop
-    for j=1:(Na-1)
+    for j=1:Na
         for k=0:(N-1)
-            l = j+k*Na;
+            l = j+k*(Na+1);
             vel(l+1) = vel(l) + dtau*acc(l);
             ap(l+1) = ap(l) + dtau*vel(l+1);%
         end
         for k=0:(N-1)
-            l = j+k*Na;
-            acc(l+1) = (1/a^2)*(ap(neigh(l,1,1,Na)+1)+ap(neigh(l,1,-1,Na)+1)-2*ap(l+1)) ...
+            l = j+k*(Na+1);
+            acc(l+1) = (1/a^2)*(ap(neigh(l,1,1,Na+1)+1)+ap(neigh(l,1,-1,Na+1)+1)-2*ap(l+1)) ...
             -(lambda/2)*ap(l+1)*(ap(l+1)^2-v^2) - epsilon/2/v;    
         end
     end
 
     %now along c
     %C2. initialize mp==mphi using last point of ephi and zeros- use complex phi
-    cp = complex(zeros(Cdim,1));
+    cp = complex(zeros(Cdim+N,1)); %extra N is to include corner point
     for j=0:(N-1)
-        cp(j*Nc+1) = p(2*(j*Nb+Nb-1)+1) + 1i*p(2*(j*Nb+Nb-1)+2);%%roots(1);%%
+        cp(j*(Nc+1)+1) = p(2*(j*Nb+Nb-1)+1) + 1i*p(2*(j*Nb+Nb-1)+2);%%roots(1);%%
     end
 
     %C3. initialize vel - defined at half steps, first step being at t=-1/2,
     %vel(t+1/2) := (p(t+1)-p(t))/dt
-    vel = complex(zeros(Cdim,1));
+    vel = complex(zeros(Cdim+N,1));
     dtau = b;
     Dt0 = dtau;%%b/2*(-1+1i*up); - this is surely wrong!!
     for j=0:(N-1)
-        k = j*Nc;
+        k = j*(Nc+1);
         vel(k+1) = 0; %%due to boundary condition
     end
 
     %C4. initialize acc using phi and expression from equation of motion and zeros-
     %complex
-    acc = complex(zeros(Cdim,1));
+    acc = complex(zeros(Cdim+N,1));
     for j=0:(N-1)
-        k = j*Nc;
-        acc(k+1) = ((Dt0/a^2)*(cp(neigh(k,1,1,Nc)+1)+cp(neigh(k,1,-1,Nc)+1)-2*cp(k+1)) ...
+        k = j*(Nc+1);
+        acc(k+1) = ((Dt0/a^2)*(cp(neigh(k,1,1,Nc+1)+1)+cp(neigh(k,1,-1,Nc+1)+1)-2*cp(k+1)) ...
             -(lambda*Dt0/2)*cp(k+1)*(cp(k+1)^2-v^2) - epsilon*Dt0/2/v)/dtau;
     end
 
     %C7. run loop
-    for j=1:(Nc-1)
+    for j=1:Nc
         for k=0:(N-1)
-            l = j+k*Nc;
+            l = j+k*(Nc+1);
             vel(l+1) = vel(l) + dtau*acc(l);
             cp(l+1) = cp(l) + dtau*vel(l+1);%
         end
         for k=0:(N-1)
-            l = j+k*Nc;
-            acc(l+1) = (1/a^2)*(cp(neigh(l,1,1,Nc)+1)+cp(neigh(l,1,-1,Nc)+1)-2*cp(l+1)) ...
+            l = j+k*(Nc+1);
+            acc(l+1) = (1/a^2)*(cp(neigh(l,1,1,Nc+1)+1)+cp(neigh(l,1,-1,Nc+1)+1)-2*cp(l+1)) ...
             -(lambda/2)*cp(l+1)*(cp(l+1)^2-v^2) - epsilon/2/v;    
         end
     end
@@ -502,14 +500,14 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         t = intCoord(j,0,NT);
         x = intCoord(j,1,NT);
         if t<Na
-            t = Na-1-t;
-            tCp(j+1) = ap(t+x*Na+1);
+            t = (Na+1)-1-t;
+            tCp(j+1) = ap(t+x*(Na+1)+1);
         elseif t<(Na+Nb)
             t = t - Na;
             tCp(j+1) = p(2*(t+x*Nb)+1) + 1i*p(2*(t+x*Nb)+2);
         else
-            t = t - Na - Nb;
-            tCp(j+1) = cp(t+x*Nc+1);
+            t = t - Na - Nb + 1; %plus 1 due to not including corner twice
+            tCp(j+1) = cp(t+x*(Nc+1)+1);
         end
     end
     
