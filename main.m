@@ -29,6 +29,7 @@ parametersMain(data); %assigning global variables according to data and paramete
 
 Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up memory
 p = data.tp; data.tp = [];
+p(end+1) = v; %second lagrange multiplier to remove time zero mode
 
 Omega = omega(N); %for implementation of initial time boundary conditions
 eOmega = Eomega(N); %comes with an extra power of the energy
@@ -55,19 +56,21 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     while (actionTest(end) > closenessA || vectorTest(end) > closenessV || runsCount<minRuns) && Xwait%beginning newton-raphson loop
         runsCount = runsCount + 1;
         
-        minusDS = zeros(2*Tdim+1,1); %-dS/d(p)
-        Chi0 = complex(zeros(Nb*N,1)); %to fix zero mode, alla kuznetsov, dl[7], though not quite
+        minusDS = zeros(2*Tdim+2,1); %-dS/d(p)
+        chiX = zeros(Nb*N,1); %to fix x zero mode, field made perpendicular to it
+        chiT = zeros(2*NT*N+2,1); %to fix (real) t zero mode, time derivative of field made perpendicular to it
 
-        for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
-            posE = (j+1)*Nb-1;
-            posT = (Na+Nb-1)+j*NT;
-            %Chi0(posE+1) = negVec(2*posE+1);
-            Chi0(posE+1) = p(2*neigh(posT,1,1,NT)+1)-p(2*neigh(posT,1,-1,NT)+1);
-            %Chi0(posE-1+1) = p(2*neigh(posT-1,1,1,NT)+1)-p(2*neigh(posT-1,1,-1,NT)+1);
+        for j=0:(N-1) %evaluating chiX, equal to the zero mode at t=(Nb-1)
+            posB = (j+1)*Nb-1; %position on section b of contour
+            posBf = (Na+Nb-1)+j*NT; %position of b on full contour
+            posT = (j+1)*NT-1;
+            chiX(posB+1) = p(2*neigh(posBf,1,1,NT)+1)-p(2*neigh(posBf,1,-1,NT)+1);
+            %chiX(posB-1+1) = p(2*neigh(posBf-1,1,1,NT)+1)-p(2*neigh(posBf-1,1,-1,NT)+1);
+            chiT(2*posT+1) = negVec(2*posB+1); %arbitrary atempt to fix zero mode
         end
-        %Chi0 = v*Chi0/norm(Chi0);
+        %chiX = v*chiX/norm(chiX);
         
-        nonz = (2*2*2+2)*NT*(N-2) + 6*Tdim + 4*N*N; %number of nonzero elements of DDS - an overestimate
+        nonz = (2*2*2+2)*NT*(N-2) + 6*Tdim + 2*2*N +4*4*N; %number of nonzero elements of DDS - an overestimate
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
@@ -84,14 +87,24 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             siteMeasure = a*tDt(j); %for sites in time
             linkMeasure = a*dtj; %for links in time
             
-            if (t>=Na) && (t<(Na+Nb)) %fixing zero mode
-                posE = t-Na+x*Nb;
-                if abs(Chi0(posE+1))>1e-16
-                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = a*Chi0(posE+1);
-                    DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*j+1; DDSv(c3) = a*Chi0(posE+1);  
-                    minusDS(2*j+1) = minusDS(2*j+1) - a*Chi0(posE+1)*p(2*Tdim+1);
-                    minusDS(2*Tdim+1) = minusDS(2*Tdim+1) - a*Chi0(posE+1)*p(2*j+1);
+            if (t>=Na) && (t<(Na+Nb)) %fixing zero modes
+                posB = t-Na+x*Nb;
+                if abs(chiX(posB+1))>1e-16 %orthogonal to p
+                    DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = a*chiX(posB+1);
+                    DDSm(c3) = 2*Tdim+1; DDSn(c3) = 2*j+1; DDSv(c3) = a*chiX(posB+1);  
+                    minusDS(2*j+1) = minusDS(2*j+1) - a*chiX(posB+1)*p(2*Tdim+1);
+                    minusDS(2*Tdim+1) = minusDS(2*Tdim+1) - a*chiX(posB+1)*p(2*j+1);
                 end
+            end
+            if abs(chiT(2*j+1))>1e-16 %orthogonal to dp/dt
+                DDSm(c3) = 2*(j+1)+1; DDSn(c3) = 2*Tdim+2; DDSv(c3) = a*chiT(2*j+1); %there should be no chiT on the final time slice or this line will go wrong
+                DDSm(c3) = 2*Tdim+2; DDSn(c3) = 2*(j+1)+1; DDSv(c3) = a*chiT(2*j+1);
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+2; DDSv(c3) = -a*chiT(2*j+1);
+                DDSm(c3) = 2*Tdim+2; DDSn(c3) = 2*j+1; DDSv(c3) = -a*chiT(2*j+1);
+                minusDS(2*(j+1)+1) = minusDS(2*(j+1)+1) - a*chiT(2*j+1)*p(2*Tdim+2);
+                minusDS(2*Tdim+2) = minusDS(2*Tdim+2) - a*chiT(2*j+1)*p(2*j+1);
+                minusDS(2*j+1) = minusDS(2*j+1) + a*chiT(2*j+1)*p(2*Tdim+2);
+                minusDS(2*Tdim+2) = minusDS(2*Tdim+2) + a*chiT(2*j+1)*p(2*j+1);
             end
             
             potL = potL - siteMeasure*(lambda/8)*(Cp(j+1)^2-v^2)^2;
@@ -101,7 +114,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             if t==(NT-1)
                 %zero eigenvalue due to these boundary conditions
                 DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part of field at final time boundary
-                DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+2; DDSv(c3) = 1; %zero imaginary part of time derivative at final time boundary - with other condition               
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+2; DDSv(c3) = 1; %zero imaginary part of time derivative at final time boundary - with other condition               z
             else
                 kinetic= kinetic + linkMeasure*((Cp(j+2) - Cp(j+1))/dtj)^2/2;
                 if t==0
@@ -182,7 +195,13 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
-        DDS = sparse(DDSm,DDSn,DDSv,2*Tdim+1,2*Tdim+1);
+        DDS = sparse(DDSm,DDSn,DDSv,2*Tdim+2,2*Tdim+2);
+        
+        undetermined = length(DDS)-sprank(DDS);
+        if undetermined>1e-16
+           [chiT,D] = eigs(DDS,1,1e-10);
+           continue %goes to beginning of while loop and starts again
+        end
         
         erg = 0;
         num = 0;
@@ -214,7 +233,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         
         
         small = norm(minusDS); %normalising problem
-        smaller = small/(2*Tdim+1);
+        smaller = small/(2*Tdim+2);
         cutoff = 1e-16;
         normed = 0;
         if smaller < cutoff
@@ -228,9 +247,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         
         limit = 1e12;
         c = condest(DDS); %finding estimate and bound for condition number
-        eigen = eigs(DDS,1,0);
-        if c>limit || abs(eigen)<1/limit
+        eigen = eigs(DDS,1,1e-6);
+        if c>limit || abs(eigen)<1/limit || undetermined>1e-16;
             singular = svds(DDS,1,0);
+            fprintf('%12s','size - structural rank = ');
+            fprintf('%12g\n',undetermined);
             fprintf('%12s','condest = ');
             fprintf('%12g\n',c);
             fprintf('%12s','smallest singular value is = ');

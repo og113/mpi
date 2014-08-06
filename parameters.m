@@ -28,7 +28,7 @@ function parameters(inputP)
     
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'
-        Lb = 38.4;
+        Lb = 50;
 		L = 4*R;
 		a = L/(N-1);
 		b = Lb/(Nb-1); %b section includes both corner points
