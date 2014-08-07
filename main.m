@@ -218,6 +218,16 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             continue %goes to beginning of while loop and starts again
         end
         
+        limit = 1e15*min([closenessA,closenessD,closenessN,closenessM]); %if c>limit numerical errors will be significant
+        c = condest(DDS); %finding estimate and bound for condition number
+        if c>limit
+            fprintf('%12s','condest = ');
+            fprintf('%12g\n',c);
+            %singular = svds(DDS,1,1e-10);
+            %fprintf('%12s','smallest singular value is = ');
+            %fprintf('%12g\n',singular);
+        end
+        
         if runsCount==1
             [chiT,zeroEig] = eigs(DDS,1,1e-10);
         end
@@ -262,16 +272,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             normed = 1;
             minusDS = minusDS/small;
             DDS = DDS/small;
-        end
-        
-        limit = 1e15*min([closenessA,closenessD,closenessN,closenessM]); %if c>limit numerical errors will be significant
-        c = condest(DDS); %finding estimate and bound for condition number
-        if c>limit
-            fprintf('%12s','condest = ');
-            fprintf('%12g\n',c);
-            %singular = svds(DDS,1,1e-10);
-            %fprintf('%12s','smallest singular value is = ');
-            %fprintf('%12g\n',singular);
         end
         
         %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
