@@ -4,7 +4,7 @@
 global d N Na Nb Nc L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle amp;
 
-aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.inputP = 'p'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';

@@ -47,28 +47,37 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
     actionTest = 1;
-    vectorTest = 1;
+    deltaTest = 1;
+    normTest = 1;
+    maxTest = 1;
     closenessA = 1e-4;
-    closenessV = 1e-3;
+    closenessD = 1e-4;
+    closenessN = 1e-4;
+    closenessM = 1e-2;
     minRuns = 3;
+    
+    chiT = zeros(2*NT*N+2,1); %to fix (real) t zero mode, time derivative of field made perpendicular to it
+    for j=0:(N-1) %evaluating chiX, equal to the zero mode at t=(Nb-1)
+        posB = (j+1)*Nb-1; %position on section b of contour
+        posT = (j+1)*NT-1;
+        posT2 = j*NT;
+        chiT(2*posT+1) = negVec(2*posB+1); %arbitrary atempt to fix zero mode - at D
+        chiT(2*posT2+1) = negVec(2*(posB-1)+1); %at A
+    end
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
-    while (actionTest(end) > closenessA || vectorTest(end) > closenessV || runsCount<minRuns) && Xwait%beginning newton-raphson loop
+    while (actionTest(end) > closenessA || deltaTest(end) > closenessD || normTest(end) > closenessN || maxTest(end) > closenessM || runsCount<minRuns) && Xwait%beginning newton-raphson loop
         runsCount = runsCount + 1;
         
         minusDS = zeros(2*Tdim+2,1); %-dS/d(p)
         chiX = zeros(Nb*N,1); %to fix x zero mode, field made perpendicular to it
-        chiT = zeros(2*NT*N+2,1); %to fix (real) t zero mode, time derivative of field made perpendicular to it
 
         for j=0:(N-1) %evaluating chiX, equal to the zero mode at t=(Nb-1)
             posB = (j+1)*Nb-1; %position on section b of contour
             posBf = (Na+Nb-1)+j*NT; %position of b on full contour
-            posT = (j+1)*NT-1;
             chiX(posB+1) = p(2*neigh(posBf,1,1,NT)+1)-p(2*neigh(posBf,1,-1,NT)+1);
             %chiX(posB-1+1) = p(2*neigh(posBf-1,1,1,NT)+1)-p(2*neigh(posBf-1,1,-1,NT)+1);
-            chiT(2*posT+1) = negVec(2*posB+1); %arbitrary atempt to fix zero mode
         end
-        %chiX = v*chiX/norm(chiX);
         
         nonz = (2*2*2+2)*NT*(N-2) + 6*Tdim + 2*2*N +4*4*N; %number of nonzero elements of DDS - an overestimate
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
@@ -196,11 +205,21 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
         DDS = sparse(DDSm,DDSn,DDSv,2*Tdim+2,2*Tdim+2);
+        if nonz<nnz(DDS)
+            disp('allow for more nonzero elements of DDS');
+            break
+        end
         
         undetermined = length(DDS)-sprank(DDS);
         if undetermined>1e-16
-           [chiT,D] = eigs(DDS,1,1e-10);
-           continue %goes to beginning of while loop and starts again
+            fprintf('%12s','size - structural rank = ');
+            fprintf('%12s\n','setting chiT equal to the zero mode and retrying');
+            [chiT,zeroEig] = eigs(DDS,1,1e-10);
+            continue %goes to beginning of while loop and starts again
+        end
+        
+        if runsCount==1
+            [chiT,zeroEig] = eigs(DDS,1,1e-10);
         end
         
         erg = 0;
@@ -245,19 +264,18 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             DDS = DDS/small;
         end
         
-        limit = 1e12;
+        limit = 1e15*min([closenessA,closenessD,closenessN,closenessM]); %if c>limit numerical errors will be significant
         c = condest(DDS); %finding estimate and bound for condition number
-        eigen = eigs(DDS,1,1e-6);
-        if c>limit || abs(eigen)<1/limit || undetermined>1e-16;
-            singular = svds(DDS,1,0);
-            fprintf('%12s','size - structural rank = ');
-            fprintf('%12g\n',undetermined);
+        if c>limit
             fprintf('%12s','condest = ');
             fprintf('%12g\n',c);
-            fprintf('%12s','smallest singular value is = ');
-            fprintf('%12g\n',singular);
-            fprintf('%12s','smallest eigenvalue is = ');           
-            fprintf('%12g\n',eigen);
+            %singular = svds(DDS,1,1e-10);
+            %fprintf('%12s','smallest singular value is = ');
+            %fprintf('%12g\n',singular);
+            restart = input('restart before solving for delta(y/n)? ','s');
+            if strcmp(restart,'y')
+                continue
+            end
         end
         
         %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
@@ -300,9 +318,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             DDS = DDS*small;
         end
         
-        vectorTest = [vectorTest, norm(delta)/norm(p)];
+        deltaTest = [deltaTest, norm(delta)/norm(p)];
         actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
         actionLast = action;
+        normTest = [normTest, norm(minusDS)/norm(p)];
+        maxTest = [maxTest, max(abs(minusDS))/max(abs(p))];
           
         if size(delta,1)==1
             p = p + delta'; %p -> p'
@@ -312,12 +332,13 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         
         Cp = vecComplex(p,Tdim); 
 
-        stopTime = toc;
-        [Xwait] = convergenceQuestions(runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
+        stopTime = toc; %CONVERGENCE QUESTIONS NEEDS FIXING
+        Xwait = convergenceQuestionsMain(runsCount, stopTime, actionTest, deltaTest); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
         save( ['data/mainEarly',num2str(loop),num2str(runsCount),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
         if 1 == 1 %loop==0
-            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', vectorTest: ',num2str(vectorTest(end))]); %just to see where we are for first run
+            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end))...
+                ,', normTest: ',num2str(normTest(end)),', maxTest: ',num2str(maxTest(end))]); %just to see where we are for first run
         end
         
     end %closing newton-raphson loop
