@@ -50,10 +50,10 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     deltaTest = 1;
     normTest = 1;
     maxTest = 1;
-    closenessA = 1e-4;
-    closenessD = 1e-4;
-    closenessN = 1e-4;
-    closenessM = 1e-2;
+    closenessA = 1;
+    closenessD = 1;
+    closenessN = 1e-5;
+    closenessM = 1e-4;
     minRuns = 3;
     
     chiT = zeros(2*NT*N+2,1); %to fix (real) t zero mode, time derivative of field made perpendicular to it
@@ -272,10 +272,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             %singular = svds(DDS,1,1e-10);
             %fprintf('%12s','smallest singular value is = ');
             %fprintf('%12g\n',singular);
-            restart = input('restart before solving for delta(y/n)? ','s');
-            if strcmp(restart,'y')
-                continue
-            end
         end
         
         %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
