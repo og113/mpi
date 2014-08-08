@@ -4,7 +4,7 @@
 global d N Na Nb Nc L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle amp;
 
-aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.inputP = 'i'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
@@ -40,7 +40,7 @@ if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i')
     %negVec = input('input vacuum bubble negative eigenvector: ');
 end
 if strcmp(inP,'i')
-    inputData = load('data/pic_Lb384.mat');
+    inputData = load('data/picOut0.mat');
 end
 
 for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
@@ -67,9 +67,13 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     actionLast = complex(twAction/2); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
     actionTest = 1;
-    vectorTest = 1;
-    closenessA = 1e-4;
-    closenessV = 1e-3;
+    deltaTest = 1;
+    normTest = 1;
+    maxTest = 1;
+    closenessA = 1;
+    closenessD = 1;
+    closenessN = 1e-5;
+    closenessM = 1e-4;
     minRuns = 3;
     
     p = zeros(2*Bdim+1,1); %phi, in the euclidean domain
@@ -187,7 +191,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     %%end
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
-    while (actionTest(end) > closenessA || vectorTest(end) > closenessV || runsCount<minRuns) && Xwait%beginning newton-raphson loop
+    while (actionTest(end) > closenessA || deltaTest(end) > closenessD || normTest(end) > closenessN || maxTest(end) > closenessM || runsCount<minRuns) && Xwait%beginning newton-raphson loop
         runsCount = runsCount + 1;
         
         minusDS = zeros(2*Bdim+1,1); %-dS/d(p)
@@ -325,17 +329,20 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             DDS = DDS/small;
         end
         
-        limit = 1e12;
+        undetermined = length(DDS)-sprank(DDS);
+        if undetermined>1e-16
+            fprintf('%12s','size - structural rank = ');
+            break %goes to beginning of while loop and starts again
+        end
+        
+        limit = 1e15*min([closenessA,closenessD,closenessN,closenessM]); %if c>limit numerical errors will be significant
         c = condest(DDS); %finding estimate and bound for condition number
-        eigen = eigs(DDS,1,0);
-        if c>limit || abs(eigen)<1/limit
-            singular = svds(DDS,1,0);
+        if c>limit
             fprintf('%12s','condest = ');
             fprintf('%12g\n',c);
-            fprintf('%12s','smallest singular value is = ');
-            fprintf('%12g\n',singular);
-            fprintf('%12s','smallest eigenvalue is = ');           
-            fprintf('%12g\n',eigen);
+            %singular = svds(DDS,1,1e-10);
+            %fprintf('%12s','smallest singular value is = ');
+            %fprintf('%12g\n',singular);
         end
         
 
@@ -389,9 +396,11 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             DDS = DDS*small;
         end
         
-        vectorTest = [vectorTest, norm(delta)/norm(p)];
+        deltaTest = [deltaTest, norm(delta)/norm(p)];
         actionTest = [actionTest, abs(action - actionLast)/abs(actionLast)]; %note this won't work if action goes to zero
         actionLast = action;
+        normTest = [normTest, norm(minusDS)/norm(p)];
+        maxTest = [maxTest, max(abs(minusDS))/max(abs(p))];
         
         if size(delta,1)==1
             p = p + delta'; %p -> p'
@@ -408,7 +417,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc','inP');
         %action
         if 1 == 1 %loop==0
-            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', vectorTest: ',num2str(vectorTest(end))]); %just to see where we are for first run
+            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end))...
+                ,', normTest: ',num2str(normTest(end)),', maxTest: ',num2str(maxTest(end))]); %just to see where we are for first run
         end
         
     end %closing newton-raphson loop
@@ -500,13 +510,13 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         t = intCoord(j,0,NT);
         x = intCoord(j,1,NT);
         if t<Na
-            t = (Na+1)-1-t;
+            t = Na - t;
             tCp(j+1) = ap(t+x*(Na+1)+1);
         elseif t<(Na+Nb)
             t = t - Na;
             tCp(j+1) = p(2*(t+x*Nb)+1) + 1i*p(2*(t+x*Nb)+2);
         else
-            t = t - Na - Nb + 1; %plus 1 due to not including corner twice
+            t = t - Na - Nb;
             tCp(j+1) = cp(t+x*(Nc+1)+1);
         end
     end

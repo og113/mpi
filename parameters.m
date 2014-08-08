@@ -35,7 +35,7 @@ function parameters(inputP)
         La = Na*b;
         Lc = Nc*b;
     elseif inputP=='p' || inputP == 'q' || inputP == 'i'
-        Lb = 26;
+        Lb = 40;
         angle = asin(Lb/R);
         Ltemp = 4*R;
         L = 1.5*(1.5*Lb*tan(angle)); %need L larger than La and Lc to fit close to light-like waves
