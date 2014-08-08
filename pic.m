@@ -516,7 +516,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             t = t - Na;
             tCp(j+1) = p(2*(t+x*Nb)+1) + 1i*p(2*(t+x*Nb)+2);
         else
-            t = t - Na - Nb;
+            t = t - Na - Nb + 1;
             tCp(j+1) = cp(t+x*(Nc+1)+1);
         end
     end

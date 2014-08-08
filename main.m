@@ -43,6 +43,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     tic; %starting the clock
     
     action = complex(2);
+    ergVec = zeros(NT,1);
+    trueErgVec = zeros(NT,1);
+    numVec = zeros(NT,1);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
@@ -50,10 +53,12 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     deltaTest = 1;
     normTest = 1;
     maxTest = 1;
+    latticeTest = 0;
     closenessA = 1;
     closenessD = 1;
     closenessN = 1e-5;
     closenessM = 1e-4;
+    closenessL = 1/3;
     minRuns = 3;
     
     chiT = zeros(2*NT*N+2,1); %to fix (real) t zero mode, time derivative of field made perpendicular to it
@@ -95,6 +100,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             dtj = tdt(j);
             siteMeasure = a*tDt(j); %for sites in time
             linkMeasure = a*dtj; %for links in time
+            trueErgVec(t+1) = kinetic - potL - potE;
             
             if (t>=Na) && (t<(Na+Nb)) %fixing zero modes
                 posB = t-Na+x*Nb;
@@ -198,9 +204,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = real(-temp2 + temp0);
                 end
             end
+            trueErgVec(t+1) = kinetic - potL - potE - trueErgVec(t+1);
         end
         clear c3; %returning persistent output of c3 to 1
         action = kinetic + potL + potE;
+        trueErg = kinetic - potL - potE;
         DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
@@ -209,13 +217,14 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             disp('allow for more nonzero elements of DDS');
             break
         end
+              
+        if (runsCount==1 && deltaTest>1e-1)
+            [chiT,zeroEig] = eigs(DDS,1,1e-10);
+        end
         
         undetermined = length(DDS)-sprank(DDS);
         if undetermined>1e-16
             fprintf('%12s','size - structural rank = ');
-            fprintf('%12s\n','setting chiT equal to the zero mode and retrying');
-            [chiT,zeroEig] = eigs(DDS,1,1e-10);
-            continue %goes to beginning of while loop and starts again
         end
         
         limit = 1e15*min([closenessA,closenessD,closenessN,closenessM]); %if c>limit numerical errors will be significant
@@ -223,43 +232,48 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         if c>limit
             fprintf('%12s','condest = ');
             fprintf('%12g\n',c);
-            %singular = svds(DDS,1,1e-10);
-            %fprintf('%12s','smallest singular value is = ');
-            %fprintf('%12g\n',singular);
         end
         
-        if runsCount==1
-            [chiT,zeroEig] = eigs(DDS,1,1e-10);
-        end
-        
-        erg = 0;
-        num = 0;
         W = 0;
         if abs(theta)<1e-16
-            for j=0:(N-1)
-                for k=0:(N-1)
-                    num = num + Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1) ...
-                        - Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2); %the sign here may be wrong - i feel intuitively that it aught to be positive
-                    erg = erg + eOmega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1) ...
-                        - eOmega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2); %likewise with sign
-%extra boundary term vanishes for the periodic instanton (theta = 0)
+            for l=0:(Na-1)
+                for j=0:(N-1)
+                    for k=0:(N-1)
+                        numVec(l+1) = numVec(l+1) + Omega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1) ...
+                            - Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2); %the sign here may be wrong - i feel intuitively that it aught to be positive
+                        ergVec(l+1) = ergVec(l+1) + eOmega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1) ...
+                            - eOmega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2); %likewise with sign
+    %extra boundary term vanishes for the periodic instanton (theta = 0)
+                    end
                 end
             end
         else
-            for j=0:(N-1)
-                for k=0:(N-1)
-                    num = num + 2*gamma*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma)^2 ...
-                        + 2*gamma*Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma)^2;
-                    erg = erg + 2*gamma*eOmega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma)^2 ...
-                        + 2*gamma*eOmega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma)^2;
-                    W = W - (1-gamma)*Omega(j+1,k+1)*p(2*j*NT+1)*p(2*k*NT+1)/(1+gamma) ...
-                        + (1+gamma)*Omega(j+1,k+1)*p(2*j*NT+2)*p(2*k*NT+2)/(1-gamma);
+            for l=0:(Na-1)
+                for j=0:(N-1)
+                    for k=0:(N-1)
+                        numVec(l+1) = numVec(l+1) + 2*gamma*Omega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma)^2 ...
+                            + 2*gamma*Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma)^2;
+                        ergVec(l+1) = ergVec(l+1) + 2*gamma*eOmega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma)^2 ...
+                            + 2*gamma*eOmega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma)^2;
+                        if l==0
+                            W = W - (1-gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma) ...
+                                + (1+gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma); %boundary term
+                        end
+                    end
                 end
             end
         end
+        erg = ergVec(1); %linearized energy
+        num = numVec(1);
+        
         W = W + num*theta + erg*2*Lb - 2*imag(action);
         W = -lambda*W;
         
+        latticeTest = (erg/num)*(a/pi);
+        if latticeTest>closenessL
+            disp('lattice spacing not small enough for energies');
+            disp(['latticeTest = ',num2str(latticeTest),' > ',num2str(closenessL)]);
+        end
         
         small = norm(minusDS); %normalising problem
         smaller = small/(2*Tdim+2);
@@ -331,10 +345,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         stopTime = toc; %CONVERGENCE QUESTIONS NEEDS FIXING
         Xwait = convergenceQuestionsMain(runsCount, stopTime, actionTest, deltaTest); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
-        save( ['data/mainEarly',num2str(loop),num2str(runsCount),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L');
+        save( ['data/mainEarly',num2str(loop),num2str(runsCount),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L','action','ergVec','numVec','trueErgVec','W');
         if 1 == 1 %loop==0
-            disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end))...
-                ,', normTest: ',num2str(normTest(end)),', maxTest: ',num2str(maxTest(end))]); %just to see where we are for first run
+            disp(['runsCount: ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end)),', normTest: ',num2str(normTest(end)),', maxTest: ',num2str(maxTest(end))]); %just to see where we are for first run
         end
         
     end %closing newton-raphson loop
