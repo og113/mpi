@@ -9,7 +9,7 @@ function Xansw = askQuestions
     %Xansw.perturbResponse = 'n';
     Xansw.loopResponse = input('loop through a parameter? (y/n): ','s');
     if Xansw.loopResponse == 'y'
-        Xansw.parameterChoice = input('which parameter?: N, R, mass, epsilon, Lb, X, lambda: ' ,'s');
+        Xansw.parameterChoice = input('which parameter?: N, R, mass, epsilon, Lb, X, lambda, amp: ' ,'s');
         Xansw.minValue = input('choose min value: ');
         Xansw.maxValue = input('choose max value: ');
         Xansw.totalLoops = input('choose number of loops: ');

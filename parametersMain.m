@@ -29,7 +29,7 @@ function parameters(inputData)
     angle = asin(Lb/R);
     a = L/(N-1);
     b = Lb/(Nb-1);
-    La = (Na-1)*b;
-    Lc = (Nc-1)*b;
+    La = Na*b;
+    Lc = Nc*b;
 end
         

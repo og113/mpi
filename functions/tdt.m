@@ -6,6 +6,6 @@ function Xtdt = tdt(locNum)
     if intCoord(locNum,0,NT)==(NT-1)
         Xtdt=0;
     else
-        Xtdt = coord(locNum+1,0) - coord(locNum-1,0);
+        Xtdt = coord(locNum+1,0) - coord(locNum,0);
     end
 end
