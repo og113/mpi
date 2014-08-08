@@ -57,7 +57,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     alpha = 10; %determines range over which tanh(x) is used
-    amp = (Lb-R)/R; %determines admixture of negative mode - trial and error
+    amp = (Lb-R)/R/2; %determines admixture of negative mode - trial and error
     action = complex(2);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
@@ -520,12 +520,12 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     
     if loop==0 %printing to terminal
-        fprintf('%6s','time', 'runs','d','N','X','Lb');
+        fprintf('%10s','time', 'runs','N','Nb','L','Lb','R','mass','lambda');
         fprintf('%14s','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
-    fprintf('%6g',toc,runsCount,d,N,X,Lb);
-    fprintf('%14g\n',real(action),imag(action));
+    fprintf('%10g',toc,runsCount,N,Nb,L,Lb,R,mass,lambda);
+    fprintf('%14g%14g\n',real(action),imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
     fprintf(actionOut,'%12g',toc,runsCount,d,N,Nb,Na,X,Lb,real(action));
