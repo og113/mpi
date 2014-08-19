@@ -4,10 +4,10 @@
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon angle theta;
 
-minFileNo = input('which data/picOut#.mat file to load first? (#) '); %loading periodic instanton
-maxFileNo = input('which data/picOut#.mat file to load last? (#) ');
+minFileNo = 0;%input('which data/picOut#.mat file to load first? (#) '); %loading periodic instanton
+maxFileNo = 0;%input('which data/picOut#.mat file to load last? (#) ');
 for fileNo = minFileNo:maxFileNo
-data = load(['data/picOut',num2str(fileNo),'.mat']);
+data = load(['data/main','0_0','.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
 eigenData = load('data/eigens.mat'); %NEED TO CHANGE THIS ONCE WE CAN LOOP IN FILENO
@@ -18,34 +18,41 @@ negVec = eigenData.V;
 
 disp(['Lb = T/2 = ', num2str(data.Lb)]); %asking input questions
 disp('angle = 0');
-maxTheta = input('input final value of angle (input 0 for no steps) ');
+minTheta = input('initial value of angle (0 for periodic instanton): ');
+maxTheta = input('final value of angle: ');
 %%maxLt = input('and input final value of Lb');
 totalLoops = 1;
-if maxTheta~=0
+if (maxTheta-minTheta)~=0
     totalLoops = input('and number of steps to get there ');
 end
 
 parametersMain(data); %assigning global variables according to data and parametersMain.m
 
-Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up memory
-p = data.tp; data.tp = [];
-p(end+1) = v; %second lagrange multiplier to remove time zero mode
+%Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up memory
+%p = data.tp; data.tp = [];
+%p(end+1) = v; %second lagrange multiplier to remove time zero mode
+p = data.p; data.p = [];
+Cp = data.Cp; data.Cp = [];
 
 Omega = omega(N); %for implementation of initial time boundary conditions
 eOmega = Eomega(N); %comes with an extra power of the energy
 
 for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
     if totalLoops>1
-        theta = loop*maxTheta/(totalLoops - 1);
+        theta = minTheta + loop*maxTheta/(totalLoops - 1);
     end
     gamma = exp(-theta);
     
     tic; %starting the clock
     
-    action = complex(2);
-    ergVec = zeros(NT,1);
+    if isfield(data,'action')
+        action = data.action;
+    else
+        action = complex(2);
+    end
+    ergVec = zeros(Na,1);
     trueErgVec = zeros(NT,1);
-    numVec = zeros(NT,1);
+    numVec = zeros(Na,1);
     
     actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
     runsCount = 0;
@@ -67,8 +74,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         posT = (j+1)*NT-1;
         posT2 = j*NT;
         chiT(2*posT+1) = negVec(2*posB+1); %arbitrary atempt to fix zero mode - at D
-        chiT(2*posT2+1) = negVec(2*(posB-1)+1); %at A
+        chiT(2*posT2+1) = negVec(2*posB+1); %at A
     end
+    chiTset = 0; %becomes 1 if chiT set to actual zero vector
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
     while (actionTest(end) > closenessA || deltaTest(end) > closenessD || normTest(end) > closenessN || maxTest(end) > closenessM || runsCount<minRuns) && Xwait%beginning newton-raphson loop
@@ -87,7 +95,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         nonz = (2*2*2+2)*NT*(N-2) + 6*Tdim + 2*2*N +4*4*N; %number of nonzero elements of DDS - an overestimate
         DDSm = zeros(nonz,1); %row numbers of non-zero elements of DDS
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
-        DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
+        DDSv = zeros(nonz,1); %values of non-zero elements of DDS
         
         kinetic = complex(0);%initializing to zero
         potL = complex(0);
@@ -217,14 +225,19 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             disp('allow for more nonzero elements of DDS');
             break
         end
-              
-        if (runsCount==1 && deltaTest>1e-1)
-            [chiT,zeroEig] = eigs(DDS,1,1e-10);
-        end
         
         undetermined = length(DDS)-sprank(DDS);
         if undetermined>1e-16
             fprintf('%12s','size - structural rank = ');
+            if chiTset == 0
+                [zeroVec,zeroVal] = eigs(DDS,1,1e-10);
+                chiT = chiT + zeroVec;
+                chiTset = 1;
+                disp('restarting with new chiT');
+                continue
+            else
+                break
+            end
         end
         
         limit = 1e15*min([closenessA,closenessD,closenessN,closenessM]); %if c>limit numerical errors will be significant
@@ -232,6 +245,13 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         if c>limit
             fprintf('%12s','condest = ');
             fprintf('%12g\n',c);
+            if chiTset == 0
+                [zeroVec,zeroVal] = eigs(DDS,1,1e-10);
+                chiT = chiT + zeroVec;
+                chiTset = 1;
+                disp('restarting with new chiT');
+                continue
+            end
         end
         
         W = 0;
@@ -333,6 +353,25 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         actionLast = action;
         normTest = [normTest, norm(minusDS)/norm(p)];
         maxTest = [maxTest, max(abs(minusDS))/max(abs(p))];
+        linearisation = abs(max(max([abs(numVec(end-16:end)*sqrt(16)/norm(numVec(end-16:end)))-1,abs(ergVec(end-16:end)*sqrt(16)/norm(ergVec(end-16:end)))-1])));
+        
+        if runsCount==1
+            if deltaTest(2)>1 && 1==0
+                [zeroVec,zeroVal] = eigs(DDS,1,1e-10);
+                chiT = chiT + zeroVec;
+                chiTset = 1;
+                disp('restarting with new chiT');
+                continue
+            end
+        else
+            if deltaTest(end)>1 && deltaTest(end)>deltaTest(end-1) && ~chiTset && 1==0
+                [zeroVec,zeroVal] = eigs(DDS,1,1e-10);
+                chiT = chiT + zeroVec;
+                chiTset = 1;
+                disp('restarting with new chiT');
+                continue
+            end
+        end
           
         if size(delta,1)==1
             p = p + delta'; %p -> p'
@@ -347,7 +386,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
 
         save( ['data/mainEarly',num2str(loop),num2str(runsCount),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L','action','ergVec','numVec','trueErgVec','W');
         if 1 == 1 %loop==0
-            disp(['runsCount: ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end)),', normTest: ',num2str(normTest(end)),', maxTest: ',num2str(maxTest(end))]); %just to see where we are for first run
+            disp(['runsCount: ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end)),', normTest: ',num2str(normTest(end)),', maxTest: ',num2str(maxTest(end)),', linearisation: ',num2str(linearisation)]); %just to see where we are for first run
         end
         
     end %closing newton-raphson loop
@@ -366,11 +405,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     fprintf(actionOut,'\n');
     fclose(actionOut);
     
-    save( ['data/main',num2str(fileNo),'_',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R','Lb','L','theta');%saving phi and minusDS to file
+    save( ['data/main',num2str(fileNo),'_',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R','Lb','L','theta','action','W','ergVec','numVec','trueErgVec');%saving phi and minusDS to file
     
 end%closing parameter loop
-end %closing fileNo loop
 
 data = load(['data/main',num2str(fileNo),'_',num2str(loop),'.mat']);
 data.tCp = data.Cp;
 plotTphi(data);
+end %closing fileNo loop

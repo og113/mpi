@@ -86,6 +86,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     polynomial = [1, 0 , -v^2, epsilon/v/lambda];
     minima = roots(polynomial);
     minima = sort(minima); %roots sorted in ascending order https://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
+    dE = abs(V1(minima(3))-V1(minima(1))); %difference in energy - should be v close to epsilion
     
     if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
         perturbReal = v*1e-4*rand(Bdim,1);
@@ -97,7 +98,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     perturbReal((k+1)*Nb*N^(j-1)) = 0;
                     perturbImag(k*Nb*N^(j-1)+1) = 0;
                     perturbImag((k+1)*Nb*N^(j-1)) = 0;
-                elseif inP == 'b' %bubble
+                elseif inP == 'b' %bubblehandles as files
                     perturbReal(k*Nb*N^(j-1)+1) = 0; %zero perturbation at initial time
                     perturbReal((k+1)*Nb*N^(j-1)) = perturbReal((k+1)*Nb*N^(j-1)-1); %zero derivative at final time
                     perturbImag(k*Nb*N^(j-1)+1) = 0;
@@ -527,14 +528,14 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     if 1==1 %loop==0 %printing to terminal
         fprintf('%8s','time', 'runs','N','Nb','L','Lb','R','mass','lambda');
-        fprintf('%14s','epsilon','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%14s','dE','re(action)','im(action)'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('\n');
     end
     fprintf('%8g',toc,runsCount,N,Nb,L,Lb,R,mass,lambda);
-    fprintf('%14g%14g%14g\n',epsilon,real(action),imag(action));
+    fprintf('%14g%14g%14g\n',dE,real(action),imag(action));
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%14g',toc,runsCount,d,N,Nb,Na,X,Lb,real(action));
+    fprintf(actionOut,'%14g',toc,runsCount,d,N,Nb,Na,R,mass,epsilon,Lb,real(action));
     fprintf(actionOut,'%14g\n',imag(action));
     fclose(actionOut);
     
