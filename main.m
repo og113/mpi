@@ -7,7 +7,8 @@ global R X lambda mass v epsilon angle theta;
 minFileNo = 0;%input('which data/picOut#.mat file to load first? (#) '); %loading periodic instanton
 maxFileNo = 0;%input('which data/picOut#.mat file to load last? (#) ');
 for fileNo = minFileNo:maxFileNo
-data = load(['data/main','0_0','.mat']);
+%data = load(['data/main','0_0','.mat']);
+data = load(['data/picOut',num2str(fileNo),'.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
 eigenData = load('data/eigens.mat'); %NEED TO CHANGE THIS ONCE WE CAN LOOP IN FILENO
@@ -23,38 +24,39 @@ maxTheta = input('final value of angle: ');
 %%maxLt = input('and input final value of Lb');
 totalLoops = 1;
 if (maxTheta-minTheta)~=0
-    totalLoops = input('and number of steps to get there ');
+    totalLoops = input('and number of steps to get there: ');
 end
 
 parametersMain(data); %assigning global variables according to data and parametersMain.m
+theta = minTheta;
 
-%Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up memory
-%p = data.tp; data.tp = [];
-%p(end+1) = v; %second lagrange multiplier to remove time zero mode
-p = data.p; data.p = [];
-Cp = data.Cp; data.Cp = [];
+Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up memory
+p = data.tp; data.tp = [];
+p(end+1) = v; %second lagrange multiplier to remove time zero mode
+%p = data.p; data.p = [];
+%Cp = data.Cp; data.Cp = [];
 
 Omega = omega(N); %for implementation of initial time boundary conditions
 eOmega = Eomega(N); %comes with an extra power of the energy
 
 for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
-    if totalLoops>1
+    if totalLoops>(1+1e-16)
         theta = minTheta + loop*maxTheta/(totalLoops - 1);
     end
     gamma = exp(-theta);
     
     tic; %starting the clock
     
-    if isfield(data,'action')
-        action = data.action;
-    else
-        action = complex(2);
-    end
+    action = complex(0);
     ergVec = zeros(Na,1);
     trueErgVec = zeros(NT,1);
     numVec = zeros(Na,1);
     
-    actionLast = complex(1); %defining some quantities to stop Newton-Raphson loop when action stops varying
+    if isfield(data,'action')%defining some quantities to stop Newton-Raphson loop when action stops varying
+        actionLast = data.action;
+    else
+        actionLast = complex(40);
+    end 
     runsCount = 0;
     actionTest = 1;
     deltaTest = 1;
@@ -110,7 +112,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             linkMeasure = a*dtj; %for links in time
             trueErgVec(t+1) = kinetic - potL - potE;
             
-            if (t>=Na) && (t<(Na+Nb)) %fixing zero modes
+            if (t>=Na) && (t<(Na+Nb)) %fixing zero mode in x
                 posB = t-Na+x*Nb;
                 if abs(chiX(posB+1))>1e-16 %orthogonal to p
                     DDSm(c3) = 2*j+1; DDSn(c3) = 2*Tdim+1; DDSv(c3) = a*chiX(posB+1);
