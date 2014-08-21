@@ -1,10 +1,12 @@
 %script to find the periodic instanton of the stable phi^4 with negative
 %mass
+clear all;
 
-global d N Na Nb Nc L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
-global R X lambda mass v epsilon angle amp;
+global d N Na Nb Nc NT L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
+global R X lambda mass v epsilon dE minima angle amp;
 
 aq.inputP = 'i'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.pot = 1;
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
@@ -13,12 +15,12 @@ aq.maxValue = 64;
 aq.totalLoops = 5;
 
 inP = aq.inputP; %just because I write this a lot
-parameters(inP); %assigning global variables according to parameters.m
+parameters(inP,aq.pot); %assigning global variables according to parameters.m
 
-fprintf('%10s','N', 'Na','Nb','Nc','L','Lb','R','mass','lambda','epsilon'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+fprintf('%10s','N', 'Na','Nb','Nc','L','Lb','R','mass','lambda','epsilon','dE'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
 fprintf('\n');
-fprintf('%10g',N,Na,Nb,Nc,L,Lb,R,mass,lambda);
-fprintf('%10g\n',epsilon);
+fprintf('%10g',N,Na,Nb,Nc,L,Lb,R,mass,lambda,epsilon);
+fprintf('%10g\n',dE);
 
 tempAq = askQuestions; %asking questions
 fields = fieldnames(tempAq);
@@ -28,7 +30,7 @@ for j=1:numel(fields) %using non-empty responses to questions to fill in aq
     end
 end
 inP = aq.inputP; %just because I write this a lot
-parameters(inP);
+parameters(inP,aq.pot);
 
 negVal = 0;
 negVec = zeros(2*N*Nb+1,1);
@@ -41,6 +43,23 @@ if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i')
 end
 if strcmp(inP,'i')
     inputData = load('data/picOut0.mat');
+end
+
+clear x epsi;
+%assigning choice of potential
+if aq.pot==1
+    V = @(x) (lambda/8.0)*(x.^2-v^2)^2 - (epsilon/2.0/v)*(x-v);
+    dV = @(x) (x*lambda*(x.^2 - v^2))/2 - epsilon/2.0/v;
+    ddV = @(x) (lambda*(3*x.^2 - v^2))/2;
+elseif aq.pot==2
+    W = @(x) exp(-x.^2)*(x + x.^3 + x.^5);
+    dW = @(x) exp(-x^2)*(- 2*x^6 + 3*x^4 + x^2 + 1);
+    ddW = @(x) 2*x^3*exp(-x^2)*(2*x^4 - 9*x^2 + 5);
+    V = @(x) (1/2)*(x+1).^2*(1-epsilon*W((x-1)/v));
+    dV = @(x) (x+1)*(1-epsilon*W((x-1)/v)) - (1/2)*(x+1).^2*(epsilon/v)*dW((x-1)/v);
+    ddV = @(x) (1-epsilon*W((x-1)/v)) - (x+1)*(epsilon/v)*dW((x-1)/v) + (1/2)*(x+1).^2*(epsilon/v^2)*ddW((x-1)/v);
+else
+    disp('choice of potential not available');
 end
 
 for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
@@ -57,7 +76,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     tic; %starting the clock
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
-    twAction = -solidAngle(d)*epsilon*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
+    twAction = -solidAngle(d)*dE*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     alpha = 10; %determines range over which tanh(x) is used
     if ~strcmp(aq.parameterChoice,'amp')
         amp = 2*(Lb-R)/R; %determines admixture of negative mode - trial and error
@@ -80,13 +99,6 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     perturbReal = zeros(Bdim,1); %perturbations
     perturbImag = zeros(Bdim,1);
     %%pNeg = zeros(2*Bdim,1); %negative eigenvector
-    
-    %syms x
-    %minima = vpasolve(x^3 -v^2*x + epsilon/v/lambda,x); %solving V'(p)=0
-    polynomial = [1, 0 , -v^2, epsilon/v/lambda];
-    minima = roots(polynomial);
-    minima = sort(minima); %roots sorted in ascending order https://www.google.co.uk/search?client=ubuntu&channel=fs&q=matlab+random+square+that+i+can%27t+click+in&ie=utf-8&oe=utf-8&gl=uk&gws_rd=cr&ei=L8dxU8LPCo_d7Qbg3IGYCg#channel=fs&gl=uk&q=matlab+annoying+square+that+i+can%27t+click+in
-    dE = abs(V1(minima(3))-V1(minima(1))); %difference in energy - should be v close to epsilion
     
     if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
         perturbReal = v*1e-4*rand(Bdim,1);
@@ -129,36 +141,36 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             disp(['X = R*mass is too small. not possible to give thinwall input. it should be less that ',num2str(alpha)]);
         else
             if strcmp(inP,'t')
-                p(2*j+1) = minima(1);
-            elseif strcmp(inP,'f')
                 p(2*j+1) = minima(3);
+            elseif strcmp(inP,'f')
+                p(2*j+1) = minima(1);
             elseif strcmp(inP,'b') || strcmp(inP,'q')
                 if rho<(R-alpha/mass)
-                    p(2*j+1) = minima(1);
-                elseif rho>(R+alpha/mass)
                     p(2*j+1) = minima(3);
+                elseif rho>(R+alpha/mass)
+                    p(2*j+1) = minima(1);
                 else
-                    p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(3)-minima(1))*tanh(mass*(rho-R)/2)/2.0;
+                    p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(1)-minima(3))*tanh(mass*(rho-R)/2)/2.0;
                     %%pNeg(2*j+1) = v/cosh(mass*(rho-R)/2)^2;
                 end
             elseif strcmp(inP,'p')
                 if rho1<(R-alpha/mass) && rho2<(R-alpha/mass)
-                    p(2*j+1) = minima(1);
-                elseif rho1>(R+alpha/mass) || rho2>(R+alpha/mass)
                     p(2*j+1) = minima(3);
+                elseif rho1>(R+alpha/mass) || rho2>(R+alpha/mass)
+                    p(2*j+1) = minima(1);
                 elseif real(eCoord(j,1))>0 %explicitly 2d here, note that the coord should be real
-                    p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(3)-minima(1))*tanh(mass*(rho1-R)/2)/2.0;
+                    p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(1)-minima(3))*tanh(mass*(rho1-R)/2)/2.0;
                     %%pNeg(2*j+1) = v/cosh(mass*(rho1-R)/2)^2;
                 elseif real(eCoord(j,1))<0
-                    p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(3)-minima(1))*tanh(mass*(rho2-R)/2)/2.0;
+                    p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(1)-minima(3))*tanh(mass*(rho2-R)/2)/2.0;
                     %%pNeg(2*j+1) = v/cosh(mass*(rho2-R)/2)^2;
                 else
-                    p(2*j+1) = minima(1); %if eCoord(j,1) == 0
+                    p(2*j+1) = (minima(1)+minima(3))/2.0; %if eCoord(j,1) == 0
                 end
             elseif strcmp(inP,'i')
                 p(2*j+1) = inputData.p(2*j+1);
             end
-            if strcmp(inP,'q') || (strcmp(inP,'i') && strcmp(inputData.inP,'b'))
+            if strcmp(inP,'q') || ((strcmp(inP,'i') && strcmp(inputData.inP,'b')))
                 p(2*j+1) = p(2*j+1) + amp*cos(sqrt(-negVal)*imag(t))*negVec(2*j+1); %adding the negative eigenvector
                 p(2*j+2) = p(2*j+2) + amp*cos(sqrt(-negVal)*imag(t))*negVec(2*j+2);
             end
@@ -171,7 +183,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         end
     end
     
-    p(Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
+    p(2*Bdim+1) = v; %initializing Lagrange parameter for dp/dx zero mode
     
     if (strcmp(inP,'p') || strcmp(inP,'q')) && 1 %fixing input periodic instanton to have zero time derivative at time boundaries
         open = 0; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
@@ -221,8 +233,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS - don't forget to initialize DDS
          
         kinetic = complex(0); %initializing to zero
-        potL = complex(0);
-        potE = complex(0);
+        pot = complex(0);
         clear c3;
         
         for j=0:(Bdim-1)
@@ -240,8 +251,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 minusDS(2*Bdim+1) = minusDS(2*Bdim+1) - a*Chi0(j+1)*p(2*j+1);                      
             end
             
-            potL = potL - siteMeasure*(lambda/8)*(Cp(j+1)^2-v^2)^2;
-            potE = potE - siteMeasure*epsilon*(Cp(j+1)-v)/v/2;
+            pot = pot + siteMeasure*V(Cp(j+1));
             if x~=(N-1) && x<(N-1)%evaluating spatial kinetic part
                 kinetic = kinetic - siteMeasure*(Cp(j+Nb+1)-Cp(j+1))^2/a^2/2;
             elseif x==(N-1) %avoinding using neigh and modulo as its slow
@@ -298,8 +308,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                         end
                     end
                     temp0 = a*(1/dtj + 1/dtjm);
-                    temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
-                    temp2 = siteMeasure*(2*(d-1)/a^2 + (lambda/2)*(3*Cp(j+1)^2 - v^2));
+                    temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + dV(Cp(j+1)));
+                    temp2 = siteMeasure*(2*(d-1)/a^2 + ddV(Cp(j+1)));
                     
                     minusDS(2*j+1) = minusDS(2*j+1) + real(temp1 - temp0*Cp(j+1));
                     minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
@@ -311,7 +321,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             end
         end
         clear c3; %returning persistent output of c3 to 1
-        action = kinetic + potL + potE;
+        action = kinetic - pot;
         DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
@@ -448,7 +458,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     for j=0:(N-1)
         k = j*(Na+1);
         acc(k+1) = ((Dt0/a^2)*(ap(neigh(k,1,1,Na+1)+1)+ap(neigh(k,1,-1,Na+1)+1)-2*ap(k+1)) ...
-            -(lambda*Dt0/2)*ap(k+1)*(ap(k+1)^2-v^2) - epsilon*Dt0/2/v)/dtau;
+            -Dt0*dV(ap(k+1)))/dtau;
     end
 
     %A7. run loop
@@ -461,7 +471,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         for k=0:(N-1)
             l = j+k*(Na+1);
             acc(l+1) = (1/a^2)*(ap(neigh(l,1,1,Na+1)+1)+ap(neigh(l,1,-1,Na+1)+1)-2*ap(l+1)) ...
-            -(lambda/2)*ap(l+1)*(ap(l+1)^2-v^2) - epsilon/2/v;    
+            -dV(ap(l+1));
         end
     end
 
@@ -488,7 +498,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     for j=0:(N-1)
         k = j*(Nc+1);
         acc(k+1) = ((Dt0/a^2)*(cp(neigh(k,1,1,Nc+1)+1)+cp(neigh(k,1,-1,Nc+1)+1)-2*cp(k+1)) ...
-            -(lambda*Dt0/2)*cp(k+1)*(cp(k+1)^2-v^2) - epsilon*Dt0/2/v)/dtau;
+            -Dt0*dV(cp(k+1)))/dtau;
     end
 
     %C7. run loop
@@ -501,7 +511,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         for k=0:(N-1)
             l = j+k*(Nc+1);
             acc(l+1) = (1/a^2)*(cp(neigh(l,1,1,Nc+1)+1)+cp(neigh(l,1,-1,Nc+1)+1)-2*cp(l+1)) ...
-            -(lambda/2)*cp(l+1)*(cp(l+1)^2-v^2) - epsilon/2/v;    
+            -dV(cp(l+1));    
         end
     end
 

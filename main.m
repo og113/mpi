@@ -2,7 +2,7 @@
 %the periodic instanton and then steps increasing angle or T.
 
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
-global R X lambda mass v epsilon angle theta;
+global R X lambda mass v epsilon dE angle theta;
 
 minFileNo = 0;%input('which data/picOut#.mat file to load first? (#) '); %loading periodic instanton
 maxFileNo = 0;%input('which data/picOut#.mat file to load last? (#) ');
