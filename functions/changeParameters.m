@@ -2,6 +2,7 @@
 %arguments are: newParameter, parameterName and inputP
 %where inputP is the input phi i.e. bubble, periodic instanton etc.
 %NB - has not been checked for consistency.
+%needs fixing post introduction of V1 and V2
 function changeParameters(newParameter, parameterName, inputP)
     global d N Na Nb Nc NT L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim;
     global R X lambda mass v epsilon angle amp;

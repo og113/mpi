@@ -2,7 +2,7 @@
 %changeParameters.m
 %argument is inputP
 function parameters(inputP,pot)
-    global d N Na Nb Nc NT L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim;
+    global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim;
     global R X lambda mass v epsilon dE minima angle theta;
     
     %main global parameters
@@ -13,23 +13,23 @@ function parameters(inputP,pot)
     Nc = 32;
     lambda = 1/10;
     theta = 0;
-    dE = 0.034;
+    dE = 0.015;
 %%%%%%%%%%%%%%%%%% - potentials
     clear x epsi;
     if pot==1
-        v = 1.5811; %also a main global parameter
+        mass = 1; %also a main global parameter
         epsilon = dE; %first guess
-        eV = @(x,epsi) (lambda/8.0)*(x.^2-v^2)^2 - (epsi/2.0/v)*(x-v);
-        edV = @(x,epsi) (x*lambda*(x.^2 - v^2))/2 - epsi/2.0/v;
+        eV = @(x,epsi) (1/8.0)*(x.^2-mass^2)^2 - (epsi/2.0/mass)*(x-mass);
+        edV = @(x,epsi) (x*(x.^2 - mass^2))/2 - epsi/2.0/mass;
         V = @(x) eV(x,epsilon);
         dV = @(x) edV(x,epsilon);
     elseif pot==2
-        v = 0.4; %also a main global parameter
+        mass = 0.4; %also a main global parameter
         epsilon = 0.75; %first guess
         W = @(x) exp(-x.^2)*(x + x.^3 + x.^5);
         dW = @(x) exp(-x^2)*(- 2*x^6 + 3*x^4 + x^2 + 1);
-        eV = @(x,epsi) (1/2)*(x+1).^2*(1-epsi*W((x-1)/v));
-        edV = @(x,epsi) (x+1)*(1-epsi*W((x-1)/v)) - (1/2)*(x+1).^2*(epsi/v)*dW((x-1)/v);
+        eV = @(x,epsi) (1/2)*(x+1).^2*(1-epsi*W((x-1)/mass));
+        edV = @(x,epsi) (x+1)*(1-epsi*W((x-1)/mass)) - (1/2)*(x+1).^2*(epsi/mass)*dW((x-1)/mass);
         V = @(x) eV(x,epsilon);
         dV = @(x) edV(x,epsilon);
     else
@@ -37,12 +37,18 @@ function parameters(inputP,pot)
     end
 %%%%%%%%%%%%%%%% - working out epsilon from dE
     test = 1;
-    minCloseness = 1e-14;
+    minCloseness = 1e-12;
     while test(end)>minCloseness
         oldMinima = fzero(dV,-3); %going from minus 3 to 3
-        for j=1:50
-            tempMinima = fzero(dV,-3+j*(6/50));
-            if tempMinima>(oldMinima(end)+1e-15) || tempMinima<(oldMinima(end)-1e-15)
+        for j=1:100
+            tempMinima = fzero(dV,-3+j*(6/100));
+            addNew = 0;
+            for k=1:length(oldMinima)
+                if tempMinima>(oldMinima(k)+1e-10) || tempMinima<(oldMinima(k)-1e-12)
+                    addNew = addNew + 1;
+                end
+            end
+            if addNew==length(oldMinima)
                 oldMinima(end+1) = tempMinima;
             end
         end
@@ -55,9 +61,15 @@ function parameters(inputP,pot)
         V = @(x) eV(x,epsilon);
         dV = @(x) edV(x,epsilon);
         newMinima = fzero(dV,-3); %going from minus 3 to 3
-        for j=1:50
-            tempMinima = fzero(dV,-3+j*(6/50));
-            if tempMinima>(newMinima(end)+1e-15) || tempMinima<(newMinima(end)-1e-15)
+        for j=1:100
+            tempMinima = fzero(dV,-3+j*(6/100));
+            addNew = 0;
+            for k=1:length(newMinima)
+                if tempMinima>(newMinima(k)+1e-13) || tempMinima<(newMinima(k)-1e-13)
+                    addNew = addNew + 1;
+                end
+            end
+            if addNew==length(newMinima)
                 newMinima(end+1) = tempMinima;
             end
         end
@@ -71,7 +83,7 @@ function parameters(inputP,pot)
         testVec(4) = abs((newdE-dE)/dE);
         test(end+1) = max(testVec);
         if length(test)>50
-            disp('parameters looped over 50 times');
+            disp('parameters looped over 50 times, consider increasing minCloseness');
         end
     end
     minima = newMinima;
@@ -83,13 +95,17 @@ function parameters(inputP,pot)
     Bdim = Nb*N;
     Cdim = Nc*N;
     Tdim = NT*N;
-    mass =  v*sqrt(lambda);
+    if pot==1
+        v =  mass/sqrt(lambda);
+    elseif pot==2
+        v = 1/sqrt(lambda);
+    end
     R = 2*mass^3/lambda/dE/3;
     X = mass*R;
     
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'
-        Lb = 40;
+        Lb = 1.5*R;
 		L = 3.8*R;
 		a = L/(N-1);
 		b = Lb/(Nb-1); %b section includes both corner points
@@ -99,7 +115,7 @@ function parameters(inputP,pot)
             disp('R is too large');
         end
     elseif inputP=='p' || inputP == 'q' || inputP == 'i'
-        Lb = 40;
+        Lb = 1.5*R;
         angle = asin(Lb/R);
         Ltemp = 3.8*R;
         L = 1.5*(1.5*Lb*tan(angle)); %need L larger than La and Lc to fit close to light-like waves

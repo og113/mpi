@@ -2,12 +2,12 @@
 %mass
 clear all;
 
-global d N Na Nb Nc NT L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
+global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R X lambda mass v epsilon dE minima angle amp;
 
-aq.inputP = 'i'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
-aq.pot = 1;
-aq.perturbResponse = 'n';
+aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.pot = 2;
+aq.perturbResponse = 'b';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
 aq.minValue = 32;
@@ -48,16 +48,16 @@ end
 clear x epsi;
 %assigning choice of potential
 if aq.pot==1
-    V = @(x) (lambda/8.0)*(x.^2-v^2)^2 - (epsilon/2.0/v)*(x-v);
-    dV = @(x) (x*lambda*(x.^2 - v^2))/2 - epsilon/2.0/v;
-    ddV = @(x) (lambda*(3*x.^2 - v^2))/2;
+    V = @(x) (1.0/8.0)*(x.^2-mass^2)^2 - (epsilon/2.0/mass)*(x-mass);
+    dV = @(x) (x*(x.^2 - mass^2))/2 - epsilon/2.0/mass;
+    ddV = @(x) (3*x.^2 - mass^2)/2;
 elseif aq.pot==2
     W = @(x) exp(-x.^2)*(x + x.^3 + x.^5);
     dW = @(x) exp(-x^2)*(- 2*x^6 + 3*x^4 + x^2 + 1);
     ddW = @(x) 2*x^3*exp(-x^2)*(2*x^4 - 9*x^2 + 5);
-    V = @(x) (1/2)*(x+1).^2*(1-epsilon*W((x-1)/v));
-    dV = @(x) (x+1)*(1-epsilon*W((x-1)/v)) - (1/2)*(x+1).^2*(epsilon/v)*dW((x-1)/v);
-    ddV = @(x) (1-epsilon*W((x-1)/v)) - (x+1)*(epsilon/v)*dW((x-1)/v) + (1/2)*(x+1).^2*(epsilon/v^2)*ddW((x-1)/v);
+    V = @(x) (1/2)*(x+1).^2*(1-epsilon*W((x-1)/mass));
+    dV = @(x) (x+1)*(1-epsilon*W((x-1)/mass)) - (1/2)*(x+1).^2*(epsilon/mass)*dW((x-1)/mass);
+    ddV = @(x) (1-epsilon*W((x-1)/mass)) - (x+1)*(epsilon/mass)*dW((x-1)/mass) + (1/2)*(x+1).^2*(epsilon/mass^2)*ddW((x-1)/mass);
 else
     disp('choice of potential not available');
 end
@@ -77,7 +77,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     S1 = 2*mass^3/3/lambda; %this is twice the value in the coleman paper
     twAction = -solidAngle(d)*dE*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
-    alpha = 10; %determines range over which tanh(x) is used
+    twAction = twAction*lambda;
+    alpha = 2; %determines range over which tanh(x) is used
     if ~strcmp(aq.parameterChoice,'amp')
         amp = 2*(Lb-R)/R; %determines admixture of negative mode - trial and error
     end
@@ -89,6 +90,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     deltaTest = 1;
     normTest = 1;
     maxTest = 1;
+    gaussianTest = 1;
     closenessA = 1;
     closenessD = 1;
     closenessN = 1e-5;
@@ -101,8 +103,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     %%pNeg = zeros(2*Bdim,1); %negative eigenvector
     
     if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
-        perturbReal = v*1e-4*rand(Bdim,1);
-        perturbImag = v*1e-4*rand(Bdim,1);
+        perturbReal = v*1e-1*rand(Bdim,1);
+        perturbImag = v*1e-1*rand(Bdim,1);
         for j=1:(d-1)
             for k=0:(N-1)
                 if inP == 't' || inP =='f' %pure vacua
@@ -139,6 +141,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         rho2 = real(sqrt(rho2Sqrd));
         if R<alpha/mass
             disp(['X = R*mass is too small. not possible to give thinwall input. it should be less that ',num2str(alpha)]);
+            break
         else
             if strcmp(inP,'t')
                 p(2*j+1) = minima(3);
@@ -412,6 +415,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         actionLast = action;
         normTest = [normTest, norm(minusDS)/norm(p)];
         maxTest = [maxTest, max(abs(minusDS))/max(abs(p))];
+        diff = DDS*delta-minusDS;
+        gaussianTest = [gaussianTest, max(abs(diff))];
         
         if size(delta,1)==1
             p = p + delta'; %p -> p'
@@ -422,7 +427,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         %pNeg and pZer plus log(det(DDS)) stuff
 
         stopTime = toc;
-        [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action); %discovering whether or not n-r has converged, and stopping if it is wildly out
+        [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action,gaussianTest); %discovering whether or not n-r has converged, and stopping if it is wildly out
         aq = Xaq;
         
         save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'lambda', 'mass', 'R','L','La','Lb','Lc','inP');

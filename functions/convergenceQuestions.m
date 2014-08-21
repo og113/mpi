@@ -2,7 +2,8 @@
 %up various options if it hasn't
 %ouput is [wait,aq]
 %arguments are: runsCount, runsTest, aq, stopTime, action
-function [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action)
+function [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action, gaussianTest)
+    global N Nb
     Xaq = aq;
     if runsCount > 1000
         disp('over 1000 runs without convergence - stopping n-r loop');
@@ -17,6 +18,9 @@ function [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action)
         end
         Xwait = input('keep waiting?(1=y, 0=n) ');
         tic;
+    elseif gaussianTest(end)>1e-15*2*N*Nb
+        disp(['gaussian elimination didnt work, norm of DDS*delta-minusDS = ',num2str(gaussianTest(end))]);
+        Xwait = 0;
     else
         Xwait = 1;
     end
