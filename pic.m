@@ -91,6 +91,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     twAction = -solidAngle(d)*dE*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     M = 2.0/3.0; %soliton mass, with m^2/lambda factored off and in units of m
     alpha = 8; %determines range over which tanh(x) is used
+    if aq.pot==2
+        alpha = alpha/10.0;
+    end
     if ~strcmp(aq.parameterChoice,'amp')
         amp = 2*(Lb-R)/R; %determines admixture of negative mode - trial and error
     end
@@ -169,13 +172,17 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                         p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(1)-minima(3))*tanh((rho-R)/2)/2.0;
                     end
                 elseif aq.pot==2
-                    if (rho-R)<(minRho+5e-2)
-                        p(2*j+1) = minima(3);
-                    elseif (rho-R)>(maxRho-5e-2)
-                        p(2*j+1) = minima(1);    
-                    else
+                    if (rho-R)>=minRho && (rho-R)<=maxRho
                         [temp,rhoPos] = min(abs((rho-R)-Rho));
                         p(2*j+1) = phiRho(rhoPos);
+                    elseif (rho-R)>=(minRho-alpha) && (rho-R)<maxRho %just to smooth edges
+                        p(2*j+1) = phiRho(1) + (minima(3)-phiRho(1))*(minRho-rho+R)/alpha;
+                    elseif (rho-R)>minRho && (rho-R)<=(maxRho+alpha) %just to smooth edges
+                        p(2*j+1) = phiRho(end) - (phiRho(end)-minima(1))*(rho-R-maxRho)/alpha;
+                    elseif (rho-R)<(minRho-alpha)
+                        p(2*j+1) = minima(3);    
+                    else
+                        p(2*j+1) = minima(1);
                     end
                 end
             elseif strcmp(inP,'p')
