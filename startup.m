@@ -3,8 +3,8 @@
 addpath('functions');
 addpath('tests');
 
-global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
-global R X lambda mass v epsilon angle theta;
-
+global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim;
+global R X A epsilon dE minima angle theta;
+    
 parameters('p',1);
 

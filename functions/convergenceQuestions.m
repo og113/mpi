@@ -18,8 +18,8 @@ function [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action, ga
         end
         Xwait = input('keep waiting?(1=y, 0=n) ');
         tic;
-    elseif gaussianTest(end)>1e-15*2*N*Nb
-        disp(['gaussian elimination didnt work, norm of DDS*delta-minusDS = ',num2str(gaussianTest(end))]);
+    elseif gaussianTest(end)>eps*2*N*Nb
+        disp(['gaussian elimination didnt work well, norm of DDS*delta-minusDS = ',num2str(gaussianTest(end))]);
         Xwait = 0;
     else
         Xwait = 1;

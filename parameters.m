@@ -1,9 +1,12 @@
 %file containing values of global parameters before effect of function
 %changeParameters.m
 %argument is inputP
+%parameters are now the barred parameters where powers of m have been used
+%to make things dimensionless and an overall factor of 1/lambda has be
+%factored out of the action
 function parameters(inputP,pot)
     global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim;
-    global R X lambda mass v epsilon dE minima angle theta;
+    global R A epsilon dE minima angle theta;
     
     %main global parameters
     d = 2;
@@ -11,25 +14,23 @@ function parameters(inputP,pot)
     Na = 80; %changed later in 'p'
     Nb = 80;
     Nc = 32;
-    lambda = 1/10;
     theta = 0;
-    dE = 0.015;
+    dE = 0.05;
+    A = 0.4; %only for pot2
 %%%%%%%%%%%%%%%%%% - potentials
     clear x epsi;
     if pot==1
-        mass = 1; %also a main global parameter
         epsilon = dE; %first guess
-        eV = @(x,epsi) (1/8.0)*(x.^2-mass^2)^2 - (epsi/2.0/mass)*(x-mass);
-        edV = @(x,epsi) (x*(x.^2 - mass^2))/2 - epsi/2.0/mass;
+        eV = @(x,epsi) (1/8.0)*(x.^2-1.0)^2 - (epsi/2.0)*(x-1.0);
+        edV = @(x,epsi) (x*(x.^2 - 1.0))/2 - epsi/2.0;
         V = @(x) eV(x,epsilon);
         dV = @(x) edV(x,epsilon);
     elseif pot==2
-        mass = 0.4; %also a main global parameter
         epsilon = 0.75; %first guess
-        W = @(x) exp(-x.^2)*(x + x.^3 + x.^5);
-        dW = @(x) exp(-x^2)*(- 2*x^6 + 3*x^4 + x^2 + 1);
-        eV = @(x,epsi) (1/2)*(x+1).^2*(1-epsi*W((x-1)/mass));
-        edV = @(x,epsi) (x+1)*(1-epsi*W((x-1)/mass)) - (1/2)*(x+1).^2*(epsi/mass)*dW((x-1)/mass);
+        W = @(x) exp(-x.^2).*(x + x.^3 + x.^5);
+        dW = @(x) exp(-x.^2)*(- 2*x.^6 + 3*x.^4 + x.^2 + 1);
+        eV = @(x,epsi) (1/2)*(x+1).^2*(1-epsi*W((x-1)/A));
+        edV = @(x,epsi) (x+1).*(1-epsi*W((x-1)/A)) - (1/2)*(x+1).^2*(epsi/A)*dW((x-1)/A);
         V = @(x) eV(x,epsilon);
         dV = @(x) edV(x,epsilon);
     else
@@ -37,7 +38,7 @@ function parameters(inputP,pot)
     end
 %%%%%%%%%%%%%%%% - working out epsilon from dE
     test = 1;
-    minCloseness = 1e-12;
+    minCloseness = eps;
     while test(end)>minCloseness
         oldMinima = fzero(dV,-3); %going from minus 3 to 3
         for j=1:100
@@ -82,7 +83,10 @@ function parameters(inputP,pot)
         end
         testVec(4) = abs((newdE-dE)/dE);
         test(end+1) = max(testVec);
-        if length(test)>50
+        if test(end)==test(end-1) && test(end)<1e-6
+            dE = newdE;
+            break
+        elseif length(test)>50
             disp('parameters looped over 50 times, consider increasing minCloseness');
         end
     end
@@ -95,18 +99,12 @@ function parameters(inputP,pot)
     Bdim = Nb*N;
     Cdim = Nc*N;
     Tdim = NT*N;
-    if pot==1
-        v =  mass/sqrt(lambda);
-    elseif pot==2
-        v = 1/sqrt(lambda);
-    end
-    R = 2*mass^3/lambda/dE/3;
-    X = mass*R;
+    R = 2.0/dE/3.0;
     
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'
         Lb = 1.5*R;
-		L = 3.8*R;
+		L = 3.5*R;
 		a = L/(N-1);
 		b = Lb/(Nb-1); %b section includes both corner points
         La = Na*b;
