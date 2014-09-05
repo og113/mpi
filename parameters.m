@@ -15,7 +15,7 @@ function parameters(inputP,pot)
     Nb = 80;
     Nc = 32;
     theta = 0;
-    dE = 0.05;
+    dE = 0.18;
     A = 0.4; %only for pot2
 %%%%%%%%%%%%%%%%%% - potentials
     clear x epsi;
@@ -28,8 +28,8 @@ function parameters(inputP,pot)
     elseif pot==2
         epsilon = 0.75; %first guess
         W = @(x) exp(-x.^2).*(x + x.^3 + x.^5);
-        dW = @(x) exp(-x.^2)*(- 2*x.^6 + 3*x.^4 + x.^2 + 1);
-        eV = @(x,epsi) (1/2)*(x+1).^2*(1-epsi*W((x-1)/A));
+        dW = @(x) exp(-x.^2).*(- 2*x.^6 + 3*x.^4 + x.^2 + 1);
+        eV = @(x,epsi) (1/2)*(x+1).^2.*(1-epsi*W((x-1)/A));
         edV = @(x,epsi) (x+1).*(1-epsi*W((x-1)/A)) - (1/2)*(x+1).^2*(epsi/A)*dW((x-1)/A);
         V = @(x) eV(x,epsilon);
         dV = @(x) edV(x,epsilon);
@@ -99,7 +99,13 @@ function parameters(inputP,pot)
     Bdim = Nb*N;
     Cdim = Nc*N;
     Tdim = NT*N;
-    R = 2.0/dE/3.0;
+    integrandS1 = @(x) (2.0*V(x)).^0.5;
+    S1 = integral(integrandS1,minima(1)+5e-2,minima(3)-1e-1);
+    if abs(imag(S1))>eps
+        disp('S1 integral went too clse to boundaries');
+        return
+    end
+    R = S1/dE;
     
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'

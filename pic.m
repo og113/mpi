@@ -60,10 +60,11 @@ elseif aq.pot==2
     ddV = @(x) (1-epsilon*W((x-1)/A)) - (x+1).*(epsilon/A)*dW((x-1)/A) + (1/2)*(x+1).^2*(epsilon/A^2).*ddW((x-1)/A);
     if strcmp(inP,'b')
         integrand = @(x) (2.0*V(x)).^(-0.5);
-        minRho = integral(integrand,minima(3)-5e-2,0);
-        maxRho = integral(integrand,minima(1)+5e-2,0);
+        minRho = integral(integrand,minima(3)-1e-1,0);
+        maxRho = integral(integrand,minima(1)+1e-1,0);
         if abs(imag(maxRho))>eps || abs(imag(minRho))>eps
             disp('maxRho or minRho is complex, consider changing integration points');
+            return
         else
             phiRho = (minima(3)-5e-2):-1e-2:(minima(1)+5e-2);
             intHand = @(x) integral(integrand,x,0);
@@ -87,7 +88,13 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     end
     tic; %starting the clock
     
-    S1 = 2/3; %this is twice the value in the coleman paper
+    %S1 = 2/3; %this is twice the value in the coleman paper, in the thin wall limit
+    clear x;
+    integrandS1 = @(x) (2.0*V(x)).^0.5;
+    S1 = integral(integrandS1,minima(1)+5e-2,minima(3)-1e-1);
+    if abs(imag(S1))>eps
+        disp('S1 integral went too clse to boundaries');
+    end
     twAction = -solidAngle(d)*dE*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     M = 2.0/3.0; %soliton mass, with m^2/lambda factored off and in units of m
     alpha = 8; %determines range over which tanh(x) is used
