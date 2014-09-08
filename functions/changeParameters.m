@@ -5,24 +5,12 @@
 %needs fixing post introduction of V1 and V2
 function changeParameters(newParameter, parameterName, inputP)
     global d N Na Nb Nc NT L Ltemp La Lb Lc a b Adim Bdim Cdim Tdim;
-    global R X lambda mass v epsilon angle amp;
-    if strcmp(parameterName,'mass')
-        mass = newParameter;
-        X = mass*R;
-        epsilon = 2*mass^3/lambda/R/3;
-        v =  mass/sqrt(lambda);
-    elseif strcmp(parameterName,'epsilon')
+    global R A epsilon dE theta angle amp;
+    if strcmp(parameterName,'epsilon') %%%%%%% needs fixing
         epsilon = newParameter;
-        lambda = 2*mass^3/epsilon/R/3;
-        v =  mass/sqrt(lambda);
     elseif strcmp(parameterName,'L')
         L = newParameter;
         a = L/(N-1);
-    elseif strcmp(parameterName,'X')
-        X = newParameter;
-        mass = X/R;
-        epsilon = 2*mass^3/lambda/R/3;
-        v =  mass/sqrt(lambda);
     elseif strcmp(parameterName,'N')
         Na = floor(Na*(newParameter/N));
         Nb = floor(Nb*(newParameter/N));
@@ -37,10 +25,6 @@ function changeParameters(newParameter, parameterName, inputP)
         Bdim = N*Nb;
         Cdim = N*Nc;
         Tdim = Adim + Bdim + Cdim;
-    elseif strcmp(parameterName,'lambda')
-        epsilon = epsilon*(lambda/newParameter); %epsilon scales like 1/lambda
-        lambda = newParameter;
-        v =  mass/sqrt(lambda);
     elseif strcmp(parameterName,'amp')
         amp = newParameter; %amp is separate to everything else
     elseif strcmp(inputP,'b') || strcmp(inputP,'t') || strcmp(inputP,'f') %specific changes to be made for the spherical vacuum bubble or pure vacuum
@@ -48,9 +32,6 @@ function changeParameters(newParameter, parameterName, inputP)
             R = newParameter;
 			L = 4*R;
 			Lb = 2*R;
-			X = mass*R;
-			epsilon = 2*mass^3/lambda/R/3;
-			v =  mass/sqrt(lambda);
 			a = L/(N-1);
 			b = Lb/(Nb-1);
             La = Na*b;
@@ -75,9 +56,6 @@ function changeParameters(newParameter, parameterName, inputP)
             b = Lb/(Nb-1);
             La = Na*b;
             Lc = Nc*b;
-            X = mass*R;
-			epsilon = 2*mass^3/lambda/R/3;
-			v =  mass/sqrt(lambda);
         elseif strcmp(parameterName,'Lb')
             Lb = newParameter;
             angle = asin(Lb/R);

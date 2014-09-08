@@ -469,8 +469,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         stopTime = toc;
         [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action,gaussianTest); %discovering whether or not n-r has converged, and stopping if it is wildly out
         aq = Xaq;
-        
-        save( ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'],'p', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'R','L','La','Lb','Lc','inP');
+        saveEarly = ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'];
+        save(saveEarly);
         %action
         if 1 == 1 %loop==0
             disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end))...
@@ -594,9 +594,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     fprintf(actionOut,'%14g\n',imag(action));
     fclose(actionOut);
     
-    save( ['data/picOut',num2str(loop),'.mat'], 'p', 'tCp', 'tp', 'Cp', 'minusDS','DDS','action', 'd', 'N', 'Na', 'Nb' , 'Nc', 'R','L','La','Lb','Lc','inP');%saving phi, DDS and minusDS to file
+    saveEnd = ['data/picOut',num2str(loop),'.mat'];
+    save(saveEnd);
     
 end%closing parameter loop
 
-data = load(['data/picOut',num2str(loop),'.mat']);
+data = load(saveEnd);
 plotTphi(data);

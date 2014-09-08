@@ -15,14 +15,14 @@ function parameters(inputP,pot)
     Nb = 80;
     Nc = 32;
     theta = 0;
-    dE = 0.18;
+    dE = 0.2;
     A = 0.4; %only for pot2
 %%%%%%%%%%%%%%%%%% - potentials
     clear x epsi;
     if pot==1
         epsilon = dE; %first guess
-        eV = @(x,epsi) (1/8.0)*(x.^2-1.0)^2 - (epsi/2.0)*(x-1.0);
-        edV = @(x,epsi) (x*(x.^2 - 1.0))/2 - epsi/2.0;
+        eV = @(x,epsi) (1/8.0)*(x.^2-1.0).^2 - (epsi/2.0)*(x-1.0);
+        edV = @(x,epsi) (x.*(x.^2 - 1.0))/2 - epsi/2.0;
         V = @(x) eV(x,epsilon);
         dV = @(x) edV(x,epsilon);
     elseif pot==2
@@ -132,5 +132,8 @@ function parameters(inputP,pot)
         Lc = Nc*b;
     else
         disp('parameter error');
+    end
+    if a>1 || b>1
+        disp('lattice spacing too large');
     end
 end
