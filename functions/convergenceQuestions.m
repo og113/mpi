@@ -10,12 +10,6 @@ function [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action, ga
         Xwait = 0;
     elseif stopTime > 600
         disp(['time greater than ',num2str(stopTime),', number of n-r loops: ',num2str(runsCount) ]);
-        printWait = input('print everything on following loops? (y/n) ','s');
-        if printWait == 'y'
-            Xaq.printChoice = 'e';
-            Xaq.printRun = 0;
-            disp(['action = ',num2str(action)]);
-        end
         Xwait = input('keep waiting?(1=y, 0=n) ');
         tic;
     elseif gaussianTest(end)>eps*2*N*Nb

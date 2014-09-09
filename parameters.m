@@ -15,7 +15,7 @@ function parameters(inputP,pot)
     Nb = 80;
     Nc = 32;
     theta = 0;
-    dE = 0.2;
+    dE = 0.15;
     A = 0.4; %only for pot2
 %%%%%%%%%%%%%%%%%% - potentials
     clear x epsi;
@@ -100,12 +100,15 @@ function parameters(inputP,pot)
     Cdim = Nc*N;
     Tdim = NT*N;
     integrandS1 = @(x) (2.0*V(x)).^0.5;
-    S1 = integral(integrandS1,minima(1)+5e-2,minima(3)-1e-1);
+    S1 = integral(integrandS1,minima(1)+3e-1,minima(3)-3e-1);
+    if pot == 1
+        S1 = 2/3; %above estimate isn't bad for pot==1 but 2/3 is a bit better
+    end
     if abs(imag(S1))>eps
         disp('S1 integral went too clse to boundaries');
         return
     end
-    R = S1/dE;
+    R = S1/dE; %%S1/dE I think tends to be too large
     
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'

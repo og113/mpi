@@ -34,12 +34,10 @@ parameters(inP,aq.pot);
 
 negVal = 0;
 negVec = zeros(2*N*Nb+1,1);
-if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i')
+if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i') || 1==1
     eigenData = load('data/eigens.mat');
     negVal = eigenData.D;
     negVec = eigenData.V;
-    %negVal = input('input vacuum bubble negative eigenvalue: ');
-    %negVec = input('input vacuum bubble negative eigenvector: ');
 end
 if strcmp(inP,'i')
     inputData = load('data/picOut0.mat');
@@ -51,6 +49,8 @@ if aq.pot==1
     V = @(x) (1.0/8.0)*(x.^2-1.0).^2 - (epsilon/2.0)*(x-1.0);
     dV = @(x) (x.*(x.^2 - 1.0))/2 - epsilon/2.0;
     ddV = @(x) (3*x.^2 - 1.0)/2;
+    toEdge3 = 3e-1;
+    toEdge1 = 3e-1;
 elseif aq.pot==2
     W = @(x) exp(-x.^2).*(x + x.^3 + x.^5);
     dW = @(x) exp(-x.^2).*(- 2*x.^6 + 3*x.^4 + x.^2 + 1);
@@ -60,8 +60,8 @@ elseif aq.pot==2
     ddV = @(x) (1-epsilon*W((x-1)/A)) - (x+1).*(epsilon/A)*dW((x-1)/A) + (1/2)*(x+1).^2*(epsilon/A^2).*ddW((x-1)/A);
     if strcmp(inP,'b')
         integrand = @(x) (2.0*V(x)).^(-0.5);
-        toEdge1 = 5e-2;
-        toEdge3 = 9e-2;
+        toEdge3 = 3e-1;
+        toEdge1 = 3e-1;
         minRho = integral(integrand,minima(3)-toEdge3,0);
         maxRho = integral(integrand,minima(1)+toEdge1,0);
         if abs(imag(maxRho))>eps || abs(imag(minRho))>eps
@@ -94,25 +94,23 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     clear x;
     integrandS1 = @(x) (2.0*V(x)).^0.5;
     S1 = integral(integrandS1,minima(1)+toEdge1,minima(3)-toEdge3);
+    if aq.pot==1
+        S1 = 2/3;
+    end
     if abs(imag(S1))>eps
         disp('S1 integral went too clse to boundaries');
     end
     twAction = -solidAngle(d)*dE*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     M = 2.0/3.0; %soliton mass, with m^2/lambda factored off and in units of m
-    betaL = 8; %determines range over which tanh(x) is used
-    betaR = 8;
+    betaL = R/2; %determines range over which tanh(x) is used
+    betaR = R/2;
     if aq.pot==2
         fitEnd = max(floor(length(Rho)/24),6);
         clear x;
-        fh = @(param1,param2,param3,x) param1 + param2.*exp(param3.*x);
-        fitobject = fit(Rho(1:fitEnd)',phiRho(1:fitEnd)',fh,'StartPoint', [1, -1, 1]);
-        betaL = a/2;
-        alphaL1 = fitobject.param1;
-        alphaL2 = fitobject.param2; 
-        alphaL3 = fitobject.param3; 
-        fitobject = fit(Rho(end-fitEnd:end)',phiRho(end-fitEnd:end)','poly1');
-        alphaR = abs(fitobject.p1);
-        betaR = abs(minima(1)-phiRho(end))/alphaR;
+        fitobjectL = fit(Rho(1:fitEnd)',phiRho(1:fitEnd)','poly1');
+        betaL = min(abs((minima(3)-phiRho(1))/fitobjectL.p1),5*a);
+        fitobjectR = fit(Rho(end-fitEnd:end)',phiRho(end-fitEnd:end)','poly1');
+        betaR = min(abs((minima(1)-phiRho(end))/fitobjectR.p1),5*a);
     end
     if ~strcmp(aq.parameterChoice,'amp')
         amp = 2*(Lb-R)/R; %determines admixture of negative mode - trial and error
@@ -133,49 +131,17 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     minRuns = 3;
     
     p = zeros(2*Bdim+1,1); %phi, in the euclidean domain
-    perturbReal = zeros(Bdim,1); %perturbations
-    perturbImag = zeros(Bdim,1);
-    %%pNeg = zeros(2*Bdim,1); %negative eigenvector
-    
-    if ~strcmp(aq.perturbResponse,'n') %assigning values to perturbations if user wants perturbations
-        perturbReal = 1e-1*rand(Bdim,1);
-        perturbImag = 1e-1*rand(Bdim,1);
-        for j=1:(d-1)
-            for k=0:(N-1)
-                if inP == 't' || inP =='f' %pure vacua
-                    perturbReal(k*Nb*N^(j-1)+1) = 0; %zero perturbation at both (euclidean) time boundaries
-                    perturbReal((k+1)*Nb*N^(j-1)) = 0;
-                    perturbImag(k*Nb*N^(j-1)+1) = 0;
-                    perturbImag((k+1)*Nb*N^(j-1)) = 0;
-                elseif inP == 'b' %bubblehandles as files
-                    perturbReal(k*Nb*N^(j-1)+1) = 0; %zero perturbation at initial time
-                    perturbReal((k+1)*Nb*N^(j-1)) = perturbReal((k+1)*Nb*N^(j-1)-1); %zero derivative at final time
-                    perturbImag(k*Nb*N^(j-1)+1) = 0;
-                    perturbImag((k+1)*Nb*N^(j-1)) = 0;
-                elseif inP == 'p' || inP == 'q' || inP == 'i' %periodic instanton - 'q' is the other approximation to the periodic instanton
-                    perturbReal(k*Nb*N^(j-1)+1) = perturbReal(k*Nb*N^(j-1)+2); %zero time derivative at both time boundaries
-                    perturbReal((k+1)*Nb*N^(j-1)) = perturbReal((k+1)*Nb*N^(j-1)-1);
-                    perturbImag(k*Nb*N^(j-1)+1) = 0;
-                    perturbImag((k+1)*Nb*N^(j-1)) = 0;
-                end
-            end
-        end
-    end
     
     for j=0:(Bdim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
         t = eCoord(j,0);
         x = eCoord(j,1);
-        rhoSqrd = -t^2;
-        rho1Sqrd = -t^2;
-        rho2Sqrd = -t^2; 
-        rhoSqrd = rhoSqrd + x^2;
-        rho1Sqrd = rho1Sqrd + (x+R*cos(angle))^2;
-        rho2Sqrd = rho2Sqrd + (x-R*cos(angle))^2;
-        rho = real(sqrt(rhoSqrd)); %rho should be real even without the real()
-        rho1 = real(sqrt(rho1Sqrd));
-        rho2 = real(sqrt(rho2Sqrd));
+        clear arg;
+        rhoH = @(arg1,arg2) (-arg1.^2 + arg2.^2).^0.5;
+        rho = real(rhoH(t,x)); %rho should be real even without the real()
+        rho1 = real(rhoH(t,x+R*cos(angle)));
+        rho2 = real(rhoH(t,x-R*cos(angle))); 
         if R<betaL || R<betaR
-            disp(['R is too small. not possible to give thinwall input. it should be less that ',num2str(max(betaL,betaR))]);
+            disp(['R is too small. not possible to give thinwall input. it should be more that ',num2str(max(betaL,betaR))]);
             break
         else
             if strcmp(inP,'t')
@@ -196,9 +162,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                         [temp,rhoPos] = min(abs((rho-R)-Rho));
                         p(2*j+1) = phiRho(rhoPos);
                     elseif (rho-R)>=(minRho-betaL) && (rho-R)<maxRho %just to smooth edges
-                        p(2*j+1) = alphaL1+alphaL2*exp(alphaL3*(rho-R));
+                        p(2*j+1) = fitobjectL(rho-R);
                     elseif (rho-R)>minRho && (rho-R)<=(maxRho+betaR) %just to smooth edges
-                        p(2*j+1) = phiRho(end) - alphaR*(rho-R-maxRho);
+                        p(2*j+1) = fitobjectR(rho-R);
                     elseif (rho-R)<(minRho-betaL)
                         p(2*j+1) = minima(3);    
                     else
@@ -226,16 +192,10 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 p(2*j+1) = p(2*j+1) + amp*cos(sqrt(-negVal)*imag(t))*negVec(2*j+1); %adding the negative eigenvector
                 p(2*j+2) = p(2*j+2) + amp*cos(sqrt(-negVal)*imag(t))*negVec(2*j+2);
             end
-            if aq.perturbResponse == 'r' || aq.perturbResponse =='b'
-                p(2*j+1) = p(2*j+1) + perturbReal(j+1);
-            end
-            if aq.perturbResponse == 'i' || aq.perturbResponse =='b'
-                p(2*j+2) = p(2*j+2) + perturbImag(j+1);
-            end
         end
     end
     
-    p(2*Bdim+1) = 0.1; %initializing Lagrange parameter for dp/dx zero mode
+    p(2*Bdim+1) = 0.5; %initializing Lagrange parameter for dp/dx zero mode
     
     if (strcmp(inP,'p') || strcmp(inP,'q')) && 1 %fixing input periodic instanton to have zero time derivative at time boundaries
         open = 0; %value of 0 assigns all weight tpico boundary, value of 1 to neighbour of boundary
@@ -250,10 +210,6 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             p(2*((j+1)*Nb-1)+2) = p(2*((j+1)*Nb-2)+2);
         end
     end
-    
-    %%if inP == 'b' || inP == 'p' %fixing norm of pNeg
-        %%pNeg = pNeg/norm(pNeg);
-    %%end
         
     Xwait = 1; %this is just a parameter to stop when things are slow perhaps because the newton-raphson loop isn't converging
     while (actionTest(end) > closenessA || deltaTest(end) > closenessD || normTest(end) > closenessN || maxTest(end) > closenessM || runsCount<minRuns) && Xwait%beginning newton-raphson loop
@@ -266,8 +222,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
 
         for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
             pos = (j+1)*Nb-1;
-            %Chi0(pos+1) = negVec(2*pos+1);
-            Chi0(pos+1) = p(2*neigh(pos,1,1,Nb)+1)-p(2*neigh(pos,1,-1,Nb)+1);
+            Chi0(pos+1) = negVec(2*pos+1);
+            %Chi0(pos+1) = p(2*neigh(pos,1,1,Nb)+1)-p(2*neigh(pos,1,-1,Nb)+1);
             %Chi0(pos-1+1) = p(2*neigh(pos-1,1,1,Nb)+1)-p(2*neigh(pos-1,1,-1,Nb)+1);
         end
         %Chi0 = v*Chi0/norm(Chi0);
@@ -363,8 +319,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                         end
                     end
                     temp0 = a*(1/dtj + 1/dtjm);
-                    temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + dV(Cp(j+1)));
-                    temp2 = siteMeasure*(2*(d-1)/a^2 + ddV(Cp(j+1)));
+                    temp1 = siteMeasure*(2*Cp(j+1)/a^2 + dV(Cp(j+1)));
+                    temp2 = siteMeasure*(2/a^2 + ddV(Cp(j+1)));
                     
                     minusDS(2*j+1) = minusDS(2*j+1) + real(temp1 - temp0*Cp(j+1));
                     minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
@@ -407,54 +363,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         if c>limit
             fprintf('%12s','condest = ');
             fprintf('%12g\n',c);
-            %singular = svds(DDS,1,1e-10);
-            %fprintf('%12s','smallest singular value is = ');
-            %fprintf('%12g\n',singular);
         end
-        
-
-        %[orderRow,orderCol,r,s,cc,rr] = dmperm(DDS); %preordering - gets vector order (and perhaps a second vector) - options are colamd, colperm and dmperm (which may produce 2 ordering vectors)
-        %orderRow = dmperm(DDS);
-        %orderRow(end) = length(orderRow); %as it sometimes gives 0 at the end
-        
-        %setup.type = 'nofill';%'ilutp'; %preconditioning - incomplete LU factorization does not increase the number of non-zero elements in DDS - options are 'nofill', 'ilutp' and 'crout'
-        %setup.droptol = 1e-6; %drop tolerance is the minimum ratio of (off-diagonal) abs(U_ij) to norm(DDS(:j))
-        %setup.thresh = 0; %if 1 forces pivoting on diagonal, 0 to turn off
-        %setup.udiag = 0; %if 1 this replaces zeros in upper diagonal with droptol, 0 to turn off
-        %[Lo,Up] = ilu(DDS(orderRow,orderCol),setup);
-        %[Lo,Up] = ilu(DDS(orderRow,:),setup);
-        
-        %tol = 1e-6; %tolerance for norm(Ax-b)/norm(b), consider increasing if procedure is slow
-        %maxit = 50; %max number of iterations
-        %x0 = rand(2*Bdim+1,1);
-        %delta = zeros(2*Bdim+1,1);
-        %[delta(orderCol),flag,relres,iter,resvec] = lsqr(DDS(orderRow,orderCol),minusDS(orderRow),tol,maxit,Lo,Up,x0); %finding solution iteratively. consider changing bicg to bicgstab, bicgstabl, cgs, gmres, lsqr, qmr or tfqmr 
-        %[delta,flag,relres,iter,resvec] = lsqr(DDS(orderRow,:),minusDS(orderRow),tol,maxit,Lo,Up,x0);
-        flag=0;
-        if flag ~=0 %flag = 0 means bicg has converged, if getting non-zero flags, output and plot relres ([deLba,flag] -> [deLba,flag,relres])
-            if flag == 1
-                disp('linear solver interated maxit times but did not converge!');
-                semilogy(1:length(resvec),resvec/norm(minusDS),'-o');
-                xlabel('Iteration number');
-                ylabel('Relative residual');
-                k = input('find smallest k eigs: ');
-                kEigs = eigs(DDS,k,1e-6); %1e-6 is the region around which eigenvalues will be found
-                disp(kEigs);
-                disp('press any key to break and resume');
-                pause;
-                break;
-            elseif flag == 2
-                disp('preconditioner M was ill-conditioned!');
-            elseif flag == 3
-                disp('linear solver stagnated (two consecutive iterates were the same)!');
-            elseif flag == 4
-                disp('one of the scalar quantities calculated during linear solver became too small or too large to continue computing!');
-            end
-        end
-        %fprintf('%12s','iter = ');
-        %fprintf('%12g\n',iter);
-        %fprintf('%12s','relres = ');
-        %fprintf('%12g\n',relres);
         
         delta = DDS\minusDS; %this is where the magic happens - direct gaussian elimination
         
@@ -469,7 +378,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         normTest = [normTest, norm(minusDS)/norm(p)];
         maxTest = [maxTest, max(abs(minusDS))/max(abs(p))];
         diff = DDS*delta-minusDS;
-        gaussianTest = [gaussianTest, max(abs(diff))/abs(norm(minusDS))];
+        gaussianTest = [gaussianTest, max(abs(diff))];
         
         if size(delta,1)==1
             p = p + delta'; %p -> p'
