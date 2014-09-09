@@ -60,13 +60,15 @@ elseif aq.pot==2
     ddV = @(x) (1-epsilon*W((x-1)/A)) - (x+1).*(epsilon/A)*dW((x-1)/A) + (1/2)*(x+1).^2*(epsilon/A^2).*ddW((x-1)/A);
     if strcmp(inP,'b')
         integrand = @(x) (2.0*V(x)).^(-0.5);
-        minRho = integral(integrand,minima(3)-1e-1,0);
-        maxRho = integral(integrand,minima(1)+1e-1,0);
+        toEdge1 = 5e-2;
+        toEdge3 = 9e-2;
+        minRho = integral(integrand,minima(3)-toEdge3,0);
+        maxRho = integral(integrand,minima(1)+toEdge1,0);
         if abs(imag(maxRho))>eps || abs(imag(minRho))>eps
             disp('maxRho or minRho is complex, consider changing integration points');
             return
         else
-            phiRho = (minima(3)-5e-2):-1e-2:(minima(1)+5e-2);
+            phiRho = (minima(3)-toEdge3):-1e-2:(minima(1)+toEdge1);
             intHand = @(x) integral(integrand,x,0);
             Rho = arrayfun(intHand,phiRho);
         end
@@ -91,15 +93,26 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     %S1 = 2/3; %this is twice the value in the coleman paper, in the thin wall limit
     clear x;
     integrandS1 = @(x) (2.0*V(x)).^0.5;
-    S1 = integral(integrandS1,minima(1)+5e-2,minima(3)-1e-1);
+    S1 = integral(integrandS1,minima(1)+toEdge1,minima(3)-toEdge3);
     if abs(imag(S1))>eps
         disp('S1 integral went too clse to boundaries');
     end
     twAction = -solidAngle(d)*dE*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     M = 2.0/3.0; %soliton mass, with m^2/lambda factored off and in units of m
-    alpha = 8; %determines range over which tanh(x) is used
+    betaL = 8; %determines range over which tanh(x) is used
+    betaR = 8;
     if aq.pot==2
-        alpha = alpha/10.0;
+        fitEnd = max(floor(length(Rho)/24),6);
+        clear x;
+        fh = @(param1,param2,param3,x) param1 + param2.*exp(param3.*x);
+        fitobject = fit(Rho(1:fitEnd)',phiRho(1:fitEnd)',fh,'StartPoint', [1, -1, 1]);
+        betaL = a/2;
+        alphaL1 = fitobject.param1;
+        alphaL2 = fitobject.param2; 
+        alphaL3 = fitobject.param3; 
+        fitobject = fit(Rho(end-fitEnd:end)',phiRho(end-fitEnd:end)','poly1');
+        alphaR = abs(fitobject.p1);
+        betaR = abs(minima(1)-phiRho(end))/alphaR;
     end
     if ~strcmp(aq.parameterChoice,'amp')
         amp = 2*(Lb-R)/R; %determines admixture of negative mode - trial and error
@@ -161,8 +174,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         rho = real(sqrt(rhoSqrd)); %rho should be real even without the real()
         rho1 = real(sqrt(rho1Sqrd));
         rho2 = real(sqrt(rho2Sqrd));
-        if R<alpha
-            disp(['R is too small. not possible to give thinwall input. it should be less that ',num2str(alpha)]);
+        if R<betaL || R<betaR
+            disp(['R is too small. not possible to give thinwall input. it should be less that ',num2str(max(betaL,betaR))]);
             break
         else
             if strcmp(inP,'t')
@@ -171,9 +184,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                 p(2*j+1) = minima(1);
             elseif strcmp(inP,'b') || strcmp(inP,'q')
                 if aq.pot==1
-                    if rho<(R-alpha)
+                    if rho<(R-betaL)
                         p(2*j+1) = minima(3);
-                    elseif rho>(R+alpha)
+                    elseif rho>(R+betaR)
                         p(2*j+1) = minima(1);
                     else
                         p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(1)-minima(3))*tanh((rho-R)/2)/2.0;
@@ -182,20 +195,20 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
                     if (rho-R)>=minRho && (rho-R)<=maxRho
                         [temp,rhoPos] = min(abs((rho-R)-Rho));
                         p(2*j+1) = phiRho(rhoPos);
-                    elseif (rho-R)>=(minRho-alpha) && (rho-R)<maxRho %just to smooth edges
-                        p(2*j+1) = phiRho(1) + (minima(3)-phiRho(1))*(minRho-rho+R)/alpha;
-                    elseif (rho-R)>minRho && (rho-R)<=(maxRho+alpha) %just to smooth edges
-                        p(2*j+1) = phiRho(end) - (phiRho(end)-minima(1))*(rho-R-maxRho)/alpha;
-                    elseif (rho-R)<(minRho-alpha)
+                    elseif (rho-R)>=(minRho-betaL) && (rho-R)<maxRho %just to smooth edges
+                        p(2*j+1) = alphaL1+alphaL2*exp(alphaL3*(rho-R));
+                    elseif (rho-R)>minRho && (rho-R)<=(maxRho+betaR) %just to smooth edges
+                        p(2*j+1) = phiRho(end) - alphaR*(rho-R-maxRho);
+                    elseif (rho-R)<(minRho-betaL)
                         p(2*j+1) = minima(3);    
                     else
                         p(2*j+1) = minima(1);
                     end
                 end
             elseif strcmp(inP,'p')
-                if rho1<(R-alpha) && rho2<(R-alpha)
+                if rho1<(R-betaL) && rho2<(R-betaR)
                     p(2*j+1) = minima(3);
-                elseif rho1>(R+alpha) || rho2>(R+alpha)
+                elseif rho1>(R+betaL) || rho2>(R+betaR)
                     p(2*j+1) = minima(1);
                 elseif real(eCoord(j,1))>0 %explicitly 2d here, note that the coord should be real
                     p(2*j+1) = (minima(1)+minima(3))/2.0 + (minima(1)-minima(3))*tanh((rho1-R)/2)/2.0;
@@ -222,7 +235,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         end
     end
     
-    p(2*Bdim+1) = 1; %initializing Lagrange parameter for dp/dx zero mode
+    p(2*Bdim+1) = 0.1; %initializing Lagrange parameter for dp/dx zero mode
     
     if (strcmp(inP,'p') || strcmp(inP,'q')) && 1 %fixing input periodic instanton to have zero time derivative at time boundaries
         open = 0; %value of 0 assigns all weight tpico boundary, value of 1 to neighbour of boundary
