@@ -6,7 +6,7 @@ global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global vari
 global R epsilon dE minima angle amp A;
 
 aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
-aq.pot = 2;
+aq.pot = 1;
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
@@ -80,10 +80,10 @@ end
 for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if answ.loopResponse='n'
     if strcmp(aq.loopResponse,'y') && strcmp(aq.parameterChoice,'N')
         N = aq.minValue + floor(loop*(aq.maxValue - aq.minValue)/(aq.totalLoops-1));
-        changeParameters(N,'N',inP);
+        changeParameters(N,'N',inP,aq.pot);
     elseif strcmp(aq.loopResponse,'y')
         loopParameter = aq.minValue + loop*(aq.maxValue - aq.minValue)/(aq.totalLoops-1);
-        changeParameters (loopParameter,aq.parameterChoice, inP);
+        changeParameters (loopParameter,aq.parameterChoice, inP,aq.pot);
     end
     if strcmp(inP,'i') && loop>0
         inputData = load(['data/picOut',num2str(loop-1),'.mat']);
@@ -222,8 +222,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
 
         for j=0:(N-1) %explicitly 2d, evaluating Chi0, equal to the zero mode at t=(Nb-1)
             pos = (j+1)*Nb-1;
-            Chi0(pos+1) = negVec(2*pos+1);
-            %Chi0(pos+1) = p(2*neigh(pos,1,1,Nb)+1)-p(2*neigh(pos,1,-1,Nb)+1);
+            %Chi0(pos+1) = negVec(2*pos+1);
+            Chi0(pos+1) = p(2*neigh(pos,1,1,Nb)+1)-p(2*neigh(pos,1,-1,Nb)+1);
             %Chi0(pos-1+1) = p(2*neigh(pos-1,1,1,Nb)+1)-p(2*neigh(pos-1,1,-1,Nb)+1);
         end
         %Chi0 = v*Chi0/norm(Chi0);
