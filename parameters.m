@@ -19,6 +19,7 @@ function parameters(inputP,pot)
     A = 0.4; %only for pot2    
     
     [dE,epsilon,minima,S1] = potFn(pot,dE);
+    epsilon = dE; %%%remove this once c++ testing over
     
     %simply derived global parameters
     NT = Na + Nb + Nc;
@@ -40,9 +41,9 @@ function parameters(inputP,pot)
             disp('R is too large');
         end
     elseif inputP=='p' || inputP == 'q' || inputP == 'i'
-        Lb = 1.5*R;
+        Lb = 1.0*R;
         angle = asin(Lb/R);
-        Ltemp = 3.8*R;
+        Ltemp = 3.0*R;
         L = 1.5*(1.5*Lb*tan(angle)); %need L larger than La and Lc to fit close to light-like waves
         if (L > Ltemp && Lb<=R) || (L < Ltemp && Lb>=R)%making sure to use the smaller of the two possible Ls
             L = Ltemp;

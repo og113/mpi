@@ -2,15 +2,15 @@
 %arguments are filenames 1 and 2
 %outputs are phi1 phi2 and diff
 function [phi1,phi2,diff] = comparePhi(file1,file2)
-    global Edim Nt;
+    global Bdim Nb N;
 
     iif  = @(varargin) varargin{2*find([varargin{1:2:end}], 1, 'first')}();
 
     phi1 = loadPhi(file1);
     phi2 = loadPhi(file2);
     
-    checkLengths = @(y) iif( length(y)<Edim || length(y)>(Edim+1) ,@() error('lengths of vectors wrong'),true,@() 1);
-    trimVector = @(y) iif( length(y)==(Edim+1) ,@() y([ones(1,Edim),0]),true, @() y);
+    checkLengths = @(y) iif( length(y)<Bdim || length(y)>(Bdim+1) ,@() error('lengths of vectors wrong'),true,@() 1);
+    trimVector = @(y) iif( length(y)==(Bdim+1) ,@() y([ones(1,Bdim),0]),true, @() y);
     
     checkLengths(phi1);
     checkLengths(phi2);
@@ -21,8 +21,8 @@ function [phi1,phi2,diff] = comparePhi(file1,file2)
     
     diff(diff<1e-10) = 0; %removing small values
     
-    t = imag(eTVec);
-    x = xVec(Nt);
+    t = imag(eTVec(Nb,N));
+    x = xVec(Nb,N);
     
     subplot(3,2,1)
     plot3(t,x,real(phi1),'x')

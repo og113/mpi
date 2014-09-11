@@ -13,6 +13,6 @@ function Xphi = loadPhi(filename,vecname)
        end
    else
        inputs = load(filename);
-       Xphi = inputs.vecname;
+       Xphi = getfield(inputs, vecname);
    end 
 end

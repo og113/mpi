@@ -5,7 +5,7 @@ clear all;
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R epsilon dE minima angle amp A;
 
-aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.inputP = 'p'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.pot = 1;
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
@@ -102,8 +102,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     end
     twAction = -solidAngle(d)*dE*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     M = 2.0/3.0; %soliton mass, with m^2/lambda factored off and in units of m
-    betaL = R/2; %determines range over which tanh(x) is used
-    betaR = R/2;
+    betaL = R/3; %determines range over which tanh(x) is used
+    betaR = R/3;
     if aq.pot==2
         fitEnd = max(floor(length(Rho)/24),6);
         clear x;
@@ -198,7 +198,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     p(2*Bdim+1) = 0.5; %initializing Lagrange parameter for dp/dx zero mode
     
     if (strcmp(inP,'p') || strcmp(inP,'q')) && 1 %fixing input periodic instanton to have zero time derivative at time boundaries
-        open = 0; %value of 0 assigns all weight tpico boundary, value of 1 to neighbour of boundary
+        open = 1.0; %value of 0 assigns all weight tpico boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
             p(2*j*Nb+1) = (1.0-open)*p(2*j*Nb+1) + open*p(2*(j*Nb+1)+1);%intiial time real
             p(2*(j*Nb+1)+1) = p(2*j*Nb+1);
@@ -380,6 +380,9 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         diff = DDS*delta-minusDS;
         gaussianTest = [gaussianTest, max(abs(diff))];
         
+        saveEarly = ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'];
+        save(saveEarly);
+        
         if size(delta,1)==1
             p = p + delta'; %p -> p'
         else
@@ -391,8 +394,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         stopTime = toc;
         [Xwait, Xaq] = convergenceQuestions(aq, runsCount, stopTime, action,gaussianTest); %discovering whether or not n-r has converged, and stopping if it is wildly out
         aq = Xaq;
-        saveEarly = ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'];
-        save(saveEarly);
+        
         %action
         if 1 == 1 %loop==0
             disp(['runscount : ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end))...

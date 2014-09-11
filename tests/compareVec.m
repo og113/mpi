@@ -1,28 +1,32 @@
 %function to compare to files containing phi
 %arguments are filenames 1 and 2
 %outputs are vec1 phi2 and diff and vecname i.e. Cp or minusDS
-function [vec1,vec2,diff] = comparePhi(file1,file2, vecname)
-    global Edim Nt;
+function [vec1,vec2,diff] = compareVec(file1,file2, vecname)
+    global Bdim Nb N;
 
     iif  = @(varargin) varargin{2*find([varargin{1:2:end}], 1, 'first')}();
 
-    vec1 = loadVec(file1,vecname);
-    vec2 = loadVec(file2,vecname);
+    tempVec1 = loadVec(file1,vecname);
+    tempVec2 = loadVec(file2,vecname);
     
-    checkLengths = @(y) iif( length(y)<Edim || length(y)>(Edim+1) ,@() error('lengths of vectors wrong'),true,@() 1);
-    trimVector = @(y) iif( length(y)==(Edim+1) ,@() y([ones(1,Edim),0]),true, @() y);
+    if (length(tempVec1)>Bdim)
+        vec1 = vecComplex(tempVec1,Bdim);  
+    else
+        vec1 = tempVec1;
+    end
     
-    checkLengths(vec1);
-    checkLengths(vec2);
-    trimVector(vec1);
-    trimVector(vec2);
+    if (length(tempVec2)>Bdim)
+        vec2 = vecComplex(tempVec2,Bdim);  
+    else
+        vec2 = tempVec2;
+    end
     
     diff = vec1-vec2;
     
     diff(diff<1e-10) = 0; %removing small values
     
-    t = imag(eTVec);
-    x = xVec(Nt);
+    t = imag(eTVec(Nb,N));
+    x = xVec(Nb,N);
     
     subplot(3,2,1)
     plot3(t,x,real(vec1),'x')

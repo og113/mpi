@@ -3,7 +3,8 @@
 %no arguments
 function [XmDDS,XcDDS,XcompareDDS,Xmax] = compareDDS
     global Bdim;
-    cutoff = 1e-13op    mData = load('data/DDS.mat');
+    cutoff = eps;
+    mData = load('data/picEarly01.mat');
     %mData.DDSm(mData.DDSn==(2*Bdim+1))=[]; %eliminating lagrange multiplier row and column
     %mData.DDSv(mData.DDSn==(2*Bdim+1))=[];
     %mData.DDSn(mData.DDSn==(2*Bdim+1))=[];
@@ -11,9 +12,9 @@ function [XmDDS,XcDDS,XcompareDDS,Xmax] = compareDDS
     %mData.DDSv(mData.DDSm==(2*Bdim+1))=[];
     %mData.DDSm(mData.DDSm==(2*Bdim+1))=[];
     
-    mData.DDSm(mData.DDSv<cutoff)=[]; %eliminating zeros
-    mData.DDSn(mData.DDSv<cutoff)=[];
-    mData.DDSv(mData.DDSv<cutoff)=[];
+    mData.DDSm(abs(mData.DDSv)<cutoff)=[]; %eliminating zeros
+    mData.DDSn(abs(mData.DDSv)<cutoff)=[];
+    mData.DDSv(abs(mData.DDSv)<cutoff)=[];
     
     XmDDS = sparse(mData.DDSm,mData.DDSn,mData.DDSv);
     
@@ -23,9 +24,9 @@ function [XmDDS,XcDDS,XcompareDDS,Xmax] = compareDDS
     
     XcompareDDS = XmDDS - XcDDS;
     [i,j,s] = find(XcompareDDS);
-    i(s<cutoff)=[];
-    j(s<cutoff)=[];
-    s(s<cutoff)=[];
+    i(abs(s)<cutoff)=[];
+    j(abs(s)<cutoff)=[];
+    s(abs(s)<cutoff)=[];
     XcompareDDS = sparse(i,j,s);
     
     subplot(1,3,1)
