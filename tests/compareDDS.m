@@ -2,7 +2,6 @@
 %originally intended to compare c++ and matlab code
 %no arguments
 function [XmDDS,XcDDS,XcompareDDS,Xmax] = compareDDS
-    global Bdim;
     cutoff = eps;
     mData = load('data/picEarly01.mat');
     %mData.DDSm(mData.DDSn==(2*Bdim+1))=[]; %eliminating lagrange multiplier row and column
@@ -19,7 +18,7 @@ function [XmDDS,XcDDS,XcompareDDS,Xmax] = compareDDS
     XmDDS = sparse(mData.DDSm,mData.DDSn,mData.DDSv);
     
     load data/cDDS.dat;
-    cDDS(cDDS(:,3)<cutoff,:)=[];
+    cDDS(abs(cDDS(:,3))<cutoff,:)=[];
     XcDDS = spconvert(cDDS);
     
     XcompareDDS = XmDDS - XcDDS;
@@ -37,6 +36,6 @@ function [XmDDS,XcDDS,XcompareDDS,Xmax] = compareDDS
     spy(XcompareDDS)
     
     tempV = nonzeros(XcompareDDS);
-    Xmax = max(tempV);
+    Xmax = max(abs(tempV));
 end
 

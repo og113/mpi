@@ -23,7 +23,7 @@ function [vec1,vec2,diff] = compareVec(file1,file2, vecname)
     
     diff = vec1-vec2;
     
-    diff(diff<1e-10) = 0; %removing small values
+    diff(abs(diff)<1e-10) = 0; %removing small values
     
     t = imag(eTVec(Nb,N));
     x = xVec(Nb,N);
@@ -37,10 +37,10 @@ function [vec1,vec2,diff] = compareVec(file1,file2, vecname)
     
     subplot(3,2,3)
     plot3(t,x,real(vec2),'x')
-    xlabel('im(t)'), ylabel('x'), zlabel('re(phi2)')
+    xlabel('im(t)'), ylabel('x'), zlabel('re(vec2)')
     subplot(3,2,4)
     plot3(t,x,imag(vec2),'x')
-    xlabel('im(t)'), ylabel('x'), zlabel('imag(phi2)')
+    xlabel('im(t)'), ylabel('x'), zlabel('imag(vec2)')
     
     subplot(3,2,5)
     plot3(t,x,real(diff),'x')
