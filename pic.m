@@ -5,8 +5,10 @@ clear all;
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R epsilon dE minima angle amp A;
 
-aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
-aq.pot = 2;
+date = '15.9.14';
+
+aq.inputP = 'p'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.pot = 1;
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
@@ -35,12 +37,12 @@ parameters(inP,aq.pot);
 negVal = 0;
 negVec = zeros(2*N*Nb+1,1);
 if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i') || 1==1
-    eigenData = load('data/eigens.mat');
+    eigenData = load(['data/',date,'/eigens.mat']);
     negVal = eigenData.D;
     negVec = eigenData.V;
 end
 if strcmp(inP,'i')
-    inputData = load('data/picOut0.mat');
+    inputData = load(['data/',date,'/picOut0.mat']);
 end
 
 clear x epsi;
@@ -60,15 +62,22 @@ elseif aq.pot==2
     ddV = @(x) (1-epsilon*W((x-1)/A)) - (x+1).*(epsilon/A)*dW((x-1)/A) + (1/2)*(x+1).^2*(epsilon/A^2).*ddW((x-1)/A);
     if strcmp(inP,'b')
         integrand = @(x) (2.0*V(x)).^(-0.5);
-        toEdge3 = 1e-1;
+        toEdge3 = 5e-1; tempToEdge3 = toEdge3;
         toEdge1 = 1e-1;
         minRho = integral(integrand,minima(3)-toEdge3,0);
+        for y=tempToEdge3:(-1e-2):1e-2
+            smallerRho = integral(integrand,minima(3)-y,0);
+            if abs(imag(smallerRho))<eps
+                minRho = smallerRho;
+                toEdge3 = y;
+            end
+        end
         maxRho = integral(integrand,minima(1)+toEdge1,0);
         if abs(imag(maxRho))>eps || abs(imag(minRho))>eps
             disp('maxRho or minRho is complex, consider changing integration points');
             return
         else
-            phiRho = (minima(3)-toEdge3):-1e-2:(minima(1)+toEdge1);
+            phiRho = (minima(3))-toEdge3:-1e-2:(minima(1)+toEdge1);
             intHand = @(x) integral(integrand,x,0);
             Rho = arrayfun(intHand,phiRho);
         end
@@ -86,7 +95,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         changeParameters (loopParameter,aq.parameterChoice, inP,aq.pot);
     end
     if strcmp(inP,'i') && loop>0
-        inputData = load(['data/picOut',num2str(loop-1),'.mat']);
+        inputData = load(['data/',date,'/picOut',num2str(loop-1),'.mat']);
     end
     tic; %starting the clock
     
@@ -380,7 +389,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         diff = DDS*delta-minusDS;
         gaussianTest = [gaussianTest, max(abs(diff))];
         
-        saveEarly = ['data/picEarly',num2str(loop),num2str(runsCount),'.mat'];
+        saveEarly = ['data/',date,'/picEarly',inP,num2str(loop),num2str(runsCount),'.mat'];
         save(saveEarly);
         
         if size(delta,1)==1
@@ -513,13 +522,18 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     fprintf('%8g',toc,runsCount,N,Nb,L,Lb,R);
     fprintf('%14g%14g%14g\n',dE,real(action),imag(action));
     
-    actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
+    actionOut = fopen(['data/',date,'/picAction',inP,'.dat'],'a'); %saving action etc to file
     fprintf(actionOut,'%14g',toc,runsCount,d,N,Nb,Na,R,epsilon,Lb,real(action));
     fprintf(actionOut,'%14g\n',imag(action));
     fclose(actionOut);
     
-    saveEnd = ['data/picOut',num2str(loop),'.mat'];
+    saveEnd = ['data/',date,'/picOut',inP,num2str(loop),'.mat'];
     save(saveEnd);
+    
+    if strcmp(inP,'b')
+        [V,D] = eigs(DDS,1,-10);
+        save (['data/',date,'/eigens.mat'],'D','V');
+    end
     
 end%closing parameter loop
 

@@ -2,16 +2,18 @@
 %the periodic instanton and then steps increasing angle or T.
 
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
-global R X lambda mass v epsilon dE angle theta;
+global R epsilon dE theta;
+
+date = '15.9.14';
 
 minFileNo = 0;%input('which data/picOut#.mat file to load first? (#) '); %loading periodic instanton
 maxFileNo = 0;%input('which data/picOut#.mat file to load last? (#) ');
 for fileNo = minFileNo:maxFileNo
-%data = load(['data/main','0_0','.mat']);
-data = load(['data/picOut',num2str(fileNo),'.mat']);
+%data = load(['data/',date,'/main','0_0','.mat']);
+data = load(['data/',date,'/picOutp',num2str(fileNo),'.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
-eigenData = load('data/eigens.mat'); %NEED TO CHANGE THIS ONCE WE CAN LOOP IN FILENO
+eigenData = load(['data/',date,'/eigens.mat']); %NEED TO CHANGE THIS ONCE WE CAN LOOP IN FILENO
 negVal = eigenData.D;
 negVec = eigenData.V;
 %negVal = input('input vacuum bubble negative eigenvalue: ');
@@ -30,9 +32,15 @@ end
 parametersMain(data); %assigning global variables according to data and parametersMain.m
 theta = minTheta;
 
+V = @(x) (1.0/8.0)*(x.^2-1.0).^2 - (epsilon/2.0)*(x-1.0);
+Vl = @(x) (1.0/8.0)*(x.^2-1.0).^2;
+Ve = @(x) - (epsilon/2.0)*(x-1.0);
+dV = @(x) (x.*(x.^2 - 1.0))/2 - epsilon/2.0;
+ddV = @(x) (3*x.^2 - 1.0)/2;
+
 Cp = data.tCp; data.tCp = []; %assigning phi from pic.m output, and freeing up memory
 p = data.tp; data.tp = [];
-p(end+1) = v; %second lagrange multiplier to remove time zero mode
+p(end+1) = 0.5; %second lagrange multiplier to remove time zero mode
 %p = data.p; data.p = [];
 %Cp = data.Cp; data.Cp = [];
 
@@ -67,7 +75,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     closenessD = 1;
     closenessN = 1e-5;
     closenessM = 1e-4;
-    closenessL = 1/3;
+    closenessL = 1/2;
     minRuns = 3;
     
     chiT = zeros(2*NT*N+2,1); %to fix (real) t zero mode, time derivative of field made perpendicular to it
@@ -110,7 +118,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             dtj = tdt(j);
             siteMeasure = a*tDt(j); %for sites in time
             linkMeasure = a*dtj; %for links in time
-            trueErgVec(t+1) = kinetic - potL - potE;
+            trueErgVec(t+1) = kinetic + potL + potE;
             
             if (t>=Na) && (t<(Na+Nb)) %fixing zero mode in x
                 posB = t-Na+x*Nb;
@@ -132,8 +140,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                 minusDS(2*Tdim+2) = minusDS(2*Tdim+2) + a*chiT(2*j+1)*p(2*j+1);
             end
             
-            potL = potL - siteMeasure*(lambda/8)*(Cp(j+1)^2-v^2)^2;
-            potE = potE - siteMeasure*epsilon*(Cp(j+1)-v)/v/2;
+            potL = potL + siteMeasure*Vl(Cp(j+1));
+            potE = potE + siteMeasure*Ve(Cp(j+1));
             kinetic = kinetic - siteMeasure*(Cp(neigh(j,1,1,NT)+1)-Cp(j+1))^2/a^2/2;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% boundary conditions
             if t==(NT-1)
@@ -162,7 +170,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                             end
                         end
                         temp0 = a/dtj;
-                        temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
+                        temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + dV(Cp(j+1)));
 
                         minusDS(2*j+1) = minusDS(2*j+1) + real(temp1 - temp0*Cp(j+1));
                         minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
@@ -203,8 +211,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                         end
                     end
                     temp0 = a*(1/dtj + 1/dtjm);
-                    temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + (lambda/2)*Cp(j+1)*(Cp(j+1)^2-v^2) + epsilon/2/v);
-                    temp2 = siteMeasure*(2*(d-1)/a^2 + (lambda/2)*(3*Cp(j+1)^2 - v^2));
+                    temp1 = siteMeasure*(2*(d-1)*Cp(j+1)/a^2 + dV(Cp(j+1)));
+                    temp2 = siteMeasure*(2*(d-1)/a^2 + ddV(Cp(j+1)));
                     
                     minusDS(2*j+1) = minusDS(2*j+1) + real(temp1 - temp0*Cp(j+1));
                     minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
@@ -214,11 +222,11 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = real(-temp2 + temp0);
                 end
             end
-            trueErgVec(t+1) = kinetic - potL - potE - trueErgVec(t+1);
+            trueErgVec(t+1) = kinetic + potL + potE - trueErgVec(t+1);
         end
         clear c3; %returning persistent output of c3 to 1
-        action = kinetic + potL + potE;
-        trueErg = kinetic - potL - potE;
+        action = kinetic - potL - potE;
+        trueErg = kinetic + potL + potE;
         DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
@@ -289,7 +297,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         num = numVec(1);
         
         W = W + num*theta + erg*2*Lb - 2*imag(action);
-        W = -lambda*W;
         
         latticeTest = (erg/num)*(a/pi);
         if latticeTest>closenessL
@@ -386,7 +393,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         stopTime = toc; %CONVERGENCE QUESTIONS NEEDS FIXING
         Xwait = convergenceQuestionsMain(runsCount, stopTime, actionTest, deltaTest); %discovering whether or not n-r has converged, and stopping if it is wildly out
 
-        save( ['data/mainEarly',num2str(loop),num2str(runsCount),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R', 'Lb','L','action','ergVec','numVec','trueErgVec','W');
+        save( ['data/',date,'/mainEarly',num2str(loop),num2str(runsCount),'.mat']);
         if 1 == 1 %loop==0
             disp(['runsCount: ',num2str(runsCount),', time: ',num2str(toc),', actionTest: ',num2str(actionTest(end)),', deltaTest: ',num2str(deltaTest(end)),', normTest: ',num2str(normTest(end)),', maxTest: ',num2str(maxTest(end)),', linearisation: ',num2str(linearisation)]); %just to see where we are for first run
         end
@@ -394,24 +401,24 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     end %closing newton-raphson loop
     
     if 1==1 %loop==0 %printing to terminal
-        fprintf('%6s','time', 'runs','N','Na','Nb', 'Nc', 'mass','lambda','R','Lb','theta'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
+        fprintf('%6s','time', 'runs','N','Na','Nb', 'Nc','dE','R','Lb','theta'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
         fprintf('%12s','num','erg','re(action)','im(action)','W');
         fprintf('\n');
     end
-    fprintf('%6g',toc,runsCount,N,Na,Nb,Nc,mass,lambda,R,Lb,theta);
+    fprintf('%6g',toc,runsCount,N,Na,Nb,Nc,dE,R,Lb,theta);
     fprintf('%12g',num,erg,real(action),imag(action),W);
     fprintf('\n');
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,N,X,Lb,theta,num,erg,real(action),imag(action),W);
+    fprintf(actionOut,'%12g',toc,runsCount,N,Na,Nb,Nc,L,Lb,R,dE,theta,num,erg,real(action),imag(action),W);
     fprintf(actionOut,'\n');
     fclose(actionOut);
     
-    save( ['data/main',num2str(fileNo),'_',num2str(loop),'.mat'], 'p', 'DDS', 'Cp', 'minusDS', 'd', 'N', 'Na', 'Nb', 'Nc', 'NT', 'lambda', 'mass', 'R','Lb','L','theta','action','W','ergVec','numVec','trueErgVec');%saving phi and minusDS to file
+    save( ['data/',date,'/main',num2str(fileNo),'_',num2str(loop),'.mat'] );
     
 end%closing parameter loop
 
-data = load(['data/main',num2str(fileNo),'_',num2str(loop),'.mat']);
+data = load(['data/',date,'/main',num2str(fileNo),'_',num2str(loop),'.mat']);
 data.tCp = data.Cp;
 plotTphi(data);
 end %closing fileNo loop

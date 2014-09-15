@@ -15,7 +15,7 @@ function parameters(inputP,pot)
     Nb = 64;
     Nc = 30;
     theta = 0;
-    dE = 0.26;
+    dE = 0.06;
     A = 0.4; %only for pot2    
     
     [dE,epsilon,minima,S1] = potFn(pot,dE);
@@ -40,12 +40,16 @@ function parameters(inputP,pot)
             disp('R is too large');
         end
     elseif inputP=='p' || inputP == 'q' || inputP == 'i'
-        Lb = 1.0*R;
-        angle = asin(Lb/R);
-        Ltemp = 3.0*R;
-        L = 1.5*(1.5*Lb*tan(angle)); %need L larger than La and Lc to fit close to light-like waves
-        if (L > Ltemp && Lb<=R) || (L < Ltemp && Lb>=R)%making sure to use the smaller of the two possible Ls
-            L = Ltemp;
+        Lb = 0.8*R;
+        L = 3.0*R;
+        if Lb<R
+            angle = asin(Lb/R);
+            Ltemp = 1.5*(1.5*Lb*tan(angle)); %need L larger than La and Lc to fit close to light-like waves
+            if (L > Ltemp && Lb<=R) || (L < Ltemp && Lb>=R)%making sure to use the smaller of the two possible Ls
+                L = Ltemp;
+            end
+        else
+            disp('Lb>=R');
         end
         a = L/(N-1);
 		b = Lb/(Nb-1); %b section includes both corner points
