@@ -5,8 +5,8 @@ clear all;
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R epsilon dE minima angle amp A;
 
-aq.inputP = 'p'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
-aq.pot = 1;
+aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.pot = 2;
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
 aq.parameterChoice = 'N';
@@ -60,8 +60,8 @@ elseif aq.pot==2
     ddV = @(x) (1-epsilon*W((x-1)/A)) - (x+1).*(epsilon/A)*dW((x-1)/A) + (1/2)*(x+1).^2*(epsilon/A^2).*ddW((x-1)/A);
     if strcmp(inP,'b')
         integrand = @(x) (2.0*V(x)).^(-0.5);
-        toEdge3 = 3e-1;
-        toEdge1 = 3e-1;
+        toEdge3 = 1e-1;
+        toEdge1 = 1e-1;
         minRho = integral(integrand,minima(3)-toEdge3,0);
         maxRho = integral(integrand,minima(1)+toEdge1,0);
         if abs(imag(maxRho))>eps || abs(imag(minRho))>eps

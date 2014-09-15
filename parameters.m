@@ -11,15 +11,14 @@ function parameters(inputP,pot)
     %main global parameters
     d = 2;
     N = 100;
-    Na = 80; %changed later in 'p'
-    Nb = 80;
-    Nc = 32;
+    Na = 64; %changed later in 'p'
+    Nb = 64;
+    Nc = 30;
     theta = 0;
-    dE = 0.05;
+    dE = 0.26;
     A = 0.4; %only for pot2    
     
     [dE,epsilon,minima,S1] = potFn(pot,dE);
-    epsilon = dE; %%%remove this once c++ testing over
     
     %simply derived global parameters
     NT = Na + Nb + Nc;
@@ -31,8 +30,8 @@ function parameters(inputP,pot)
     
     %parameters specific to inputP
     if inputP=='b' || inputP=='f' || inputP=='t'
-        Lb = 1.5*R;
-		L = 3.5*R;
+        Lb = 2.0*R;
+		L = 4.0*R;
 		a = L/(N-1);
 		b = Lb/(Nb-1); %b section includes both corner points
         La = Na*b;
