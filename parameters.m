@@ -40,7 +40,7 @@ function parameters(inputP,pot)
             disp('R is too large');
         end
     elseif inputP=='p' || inputP == 'q' || inputP == 'i'
-        Lb = 0.6*R;
+        Lb = 0.9*R;
         L = 3.0*R;
         if Lb<R
             angle = asin(Lb/R);
