@@ -11,7 +11,7 @@ function parameters(inputP,pot)
     %main global parameters
     d = 2;
     N = 100;
-    Na = 64; %changed later in 'p'
+    Na = 80; %changed later in 'p'
     Nb = 64;
     Nc = 30;
     theta = 0;
@@ -40,11 +40,11 @@ function parameters(inputP,pot)
             disp('R is too large');
         end
     elseif inputP=='p' || inputP == 'q' || inputP == 'i'
-        Lb = 0.8*R;
+        Lb = 0.6*R;
         L = 3.0*R;
         if Lb<R
             angle = asin(Lb/R);
-            Ltemp = 1.5*(1.5*Lb*tan(angle)); %need L larger than La and Lc to fit close to light-like waves
+            Ltemp = 3.0*(1.5*Lb*tan(angle)); %need L larger than La and Lc to fit close to light-like waves
             if (L > Ltemp && Lb<=R) || (L < Ltemp && Lb>=R)%making sure to use the smaller of the two possible Ls
                 L = Ltemp;
             end

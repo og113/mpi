@@ -7,7 +7,7 @@ global R epsilon dE minima angle amp A;
 
 date = '17.9.14';
 
-aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.inputP = 'i'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.pot = 1;
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
@@ -36,13 +36,13 @@ parameters(inP,aq.pot);
 
 negVal = 0;
 negVec = zeros(2*N*Nb+1,1);
-if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i') || 1==1
+if strcmp(inP,'q') || strcmp(inP,'p') || strcmp(inP,'i')
     eigenData = load(['data/',date,'/eigens.mat']);
     negVal = eigenData.D;
     negVec = eigenData.V;
 end
 if strcmp(inP,'i')
-    inputData = load(['data/',date,'/picOut0.mat']);
+    inputData = load(['data/',date,'/picOutb0.mat']);
 end
 
 clear x epsi;
@@ -95,7 +95,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         changeParameters (loopParameter,aq.parameterChoice, inP,aq.pot);
     end
     if strcmp(inP,'i') && loop>0
-        inputData = load(['data/',date,'/picOut',num2str(loop-1),'.mat']);
+        inputData = load(['data/',date,'/picOuti',num2str(loop-1),'.mat']);
     end
     tic; %starting the clock
     
@@ -111,8 +111,8 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     end
     twAction = -solidAngle(d)*dE*R^d/d + solidAngle(d)*R^(d-1)*S1; %thin-wall bubble action
     M = 2.0/3.0; %soliton mass, with m^2/lambda factored off and in units of m
-    betaL = R/3; %determines range over which tanh(x) is used
-    betaR = R/3;
+    betaL = R/2; %determines range over which tanh(x) is used
+    betaR = R/2;
     if aq.pot==2
         fitEnd = max(floor(length(Rho)/24),6);
         clear x;
@@ -207,7 +207,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     p(2*Bdim+1) = 0.5; %initializing Lagrange parameter for dp/dx zero mode
     
     if (strcmp(inP,'p') || strcmp(inP,'q')) && 1 %fixing input periodic instanton to have zero time derivative at time boundaries
-        open = 1.0; %value of 0 assigns all weight tpico boundary, value of 1 to neighbour of boundary
+        open = 0.0; %value of 0 assigns all weight to boundary, value of 1 to neighbour of boundary
         for j=0:(N-1)
             p(2*j*Nb+1) = (1.0-open)*p(2*j*Nb+1) + open*p(2*(j*Nb+1)+1);%intiial time real
             p(2*(j*Nb+1)+1) = p(2*j*Nb+1);
