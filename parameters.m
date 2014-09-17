@@ -11,7 +11,7 @@ function parameters(inputP,pot)
     %main global parameters
     d = 2;
     N = 100;
-    Na = 64; %changed later in 'p'
+    Na = 80; %changed later in 'p'
     Nb = 64;
     Nc = 30;
     theta = 0;
@@ -40,7 +40,7 @@ function parameters(inputP,pot)
             disp('R is too large');
         end
     elseif inputP=='p' || inputP == 'q' || inputP == 'i'
-        Lb = 0.8*R;
+        Lb = 0.6*R;
         L = 3.0*R;
         if Lb<R
             angle = asin(Lb/R);

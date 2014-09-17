@@ -25,7 +25,7 @@ function Xomega = omega(xN)
     for j=1:xN
         for k=1:xN
             for l=1:xN
-                Xomega(j,k) = Xomega(j,k) + xa*D(l,l)*V(j,l)*V(k,l);
+                Xomega(j,k) = Xomega(j,k) + xa*V(j,l)*V(k,l)*D(l,l)^0.5;
             end
         end
     end

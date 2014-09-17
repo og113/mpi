@@ -4,7 +4,7 @@
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R epsilon dE theta;
 
-date = '15.9.14';
+date = '16.9.14';
 
 minFileNo = 0;%input('which data/picOut#.mat file to load first? (#) '); %loading periodic instanton
 maxFileNo = 0;%input('which data/picOut#.mat file to load last? (#) ');
@@ -107,7 +107,8 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         DDSn = zeros(nonz,1); %column numbers of non-zero elements of DDS
         DDSv = zeros(nonz,1); %values of non-zero elements of DDS
         
-        kinetic = complex(0);%initializing to zero
+        kineticT = complex(0);%initializing to zero
+        kineticS = complex(0);
         potL = complex(0);
         potE = complex(0);
         clear c3;
@@ -116,9 +117,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             t = intCoord(j,0,NT);
             x = intCoord(j,1,NT);
             dtj = tdt(j);
-            siteMeasure = a*tDt(j); %for sites in time
+            Dtj = tDt(j);
+            siteMeasure = a*Dtj; %for sites in time
             linkMeasure = a*dtj; %for links in time
-            trueErgVec(t+1) = kinetic + potL + potE;
             
             if (t>=Na) && (t<(Na+Nb)) %fixing zero mode in x
                 posB = t-Na+x*Nb;
@@ -140,16 +141,20 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                 minusDS(2*Tdim+2) = minusDS(2*Tdim+2) + a*chiT(2*j+1)*p(2*j+1);
             end
             
+            tempErg =  (kineticS + potL + potE)/Dtj;
             potL = potL + siteMeasure*Vl(Cp(j+1));
             potE = potE + siteMeasure*Ve(Cp(j+1));
-            kinetic = kinetic - siteMeasure*(Cp(neigh(j,1,1,NT)+1)-Cp(j+1))^2/a^2/2;
+            kineticS = kineticS + siteMeasure*(Cp(neigh(j,1,1,NT)+1)-Cp(j+1))^2/a^2/2;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% boundary conditions
             if t==(NT-1)
                 %zero eigenvalue due to these boundary conditions
                 DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = 1; %zero imaginary part of field at final time boundary
-                DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+2; DDSv(c3) = 1; %zero imaginary part of time derivative at final time boundary - with other condition               z
+                DDSm(c3) = 2*j+1; DDSn(c3) = 2*(j-1)+2; DDSv(c3) = 1; %zero imaginary part of time derivative at final time boundary - with other condition
+                trueErgVec(t+1) = trueErgVec(t+1) + (kineticS + potL + potE)/Dtj - tempErg;
             else
-                kinetic= kinetic + linkMeasure*((Cp(j+2) - Cp(j+1))/dtj)^2/2;
+                tempErg = tempErg + kineticT/dtj;
+                kineticT= kineticT + linkMeasure*((Cp(j+2) - Cp(j+1))/dtj)^2/2;
+                trueErgVec(t+1) = trueErgVec(t+1) + kineticT/dtj + (kineticS + potL + potE)/Dtj - tempErg;
                 if t==0
                     if abs(theta)<1e-16
                         %zero eigenvalue due to these boundary conditions
@@ -222,11 +227,9 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                     DDSm(c3) = 2*j+2; DDSn(c3) = 2*j+2; DDSv(c3) = real(-temp2 + temp0);
                 end
             end
-            trueErgVec(t+1) = kinetic + potL + potE - trueErgVec(t+1);
         end
         clear c3; %returning persistent output of c3 to 1
-        action = kinetic - potL - potE;
-        trueErg = kinetic + potL + potE;
+        action = kineticT - kineticS - potL - potE;
         DDSm(DDSv==0) = []; %dropping unused nonzero elements of DDS (i.e. zeros)
         DDSn(DDSv==0) = [];
         DDSv(DDSv==0) = [];
@@ -264,7 +267,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             end
         end
         
-        W = 0;
+        bound = 0;
         if abs(theta)<1e-16
             for l=0:(Na-1)
                 for j=0:(N-1)
@@ -286,7 +289,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                         ergVec(l+1) = ergVec(l+1) + 2*gamma*eOmega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma)^2 ...
                             + 2*gamma*eOmega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma)^2;
                         if l==0
-                            W = W - (1-gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma) ...
+                            bound = bound - (1-gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma) ...
                                 + (1+gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma); %boundary term
                         end
                     end
@@ -296,7 +299,7 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         erg = ergVec(1); %linearized energy
         num = numVec(1);
         
-        W = W + num*theta + erg*2*Lb - 2*imag(action);
+        W = bound + num*theta + erg*2*Lb - 2*imag(action);
         
         latticeTest = (erg/num)*(a/pi);
         if latticeTest>closenessL
@@ -402,15 +405,15 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
     
     if 1==1 %loop==0 %printing to terminal
         fprintf('%6s','time', 'runs','N','Na','Nb', 'Nc','dE','R','Lb','theta'); %can add log|det(DDS)| and 0-mode and neg-mode etc.
-        fprintf('%12s','num','erg','re(action)','im(action)','W');
+        fprintf('%12s','num','erg','bound','re(action)','im(action)','W');
         fprintf('\n');
     end
     fprintf('%6g',toc,runsCount,N,Na,Nb,Nc,dE,R,Lb,theta);
-    fprintf('%12g',num,erg,real(action),imag(action),W);
+    fprintf('%12g',num,erg,bound,real(action),imag(action),W);
     fprintf('\n');
     
     actionOut = fopen('data/picAction.dat','a'); %saving action etc to file
-    fprintf(actionOut,'%12g',toc,runsCount,N,Na,Nb,Nc,L,Lb,R,dE,theta,num,erg,real(action),imag(action),W);
+    fprintf(actionOut,'%12g',toc,runsCount,N,Na,Nb,Nc,L,Lb,R,dE,theta,num,erg,bound,real(action),imag(action),W);
     fprintf(actionOut,'\n');
     fclose(actionOut);
     
