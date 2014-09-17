@@ -176,10 +176,12 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                         minusDS(2*j+2) = minusDS(2*j+2) + imag(temp1 - temp0*Cp(j+1));
 
                         for k=0:(N-1)
-                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+1; DDSv(c3) = real(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
-                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+2; DDSv(c3) = real(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
-                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+1; DDSv(c3) = imag(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
-                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+2; DDSv(c3) = imag(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
+                            %DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+1; DDSv(c3) = real(1i*Omega(x+1,k+1)*(1+gamma)/(1-gamma));
+                            %DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+2; DDSv(c3) = imag(-Omega(x+1,k+1)*(1-gamma)/(1+gamma));
+                            DDSm(c3) = 2*j+1; DDSn(c3) = 2*k*NT+2; DDSv(c3) = -Omega(x+1,k+1)*(1-gamma)/(1+gamma);
+                            DDSm(c3) = 2*j+2; DDSn(c3) = 2*k*NT+1; DDSv(c3) = Omega(x+1,k+1)*(1+gamma)/(1-gamma);
+                            minusDS(2*j+2) =  minusDS(2*j+2) + Omega(x+1,k+1)*(1-gamma)/(1+gamma)*minima(1);
+
                         end
                     end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% end of boundary conditions
@@ -265,14 +267,16 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
         end
         
         W = 0;
+        clear x;
+        eta = @(x) p(x)-minima(1); %difference away from initial minima
         if abs(theta)<1e-16
-            for l=0:(Na-1)
+            for l=0:(Na-1)p
                 for j=0:(N-1)
                     for k=0:(N-1)
-                        numVec(l+1) = numVec(l+1) + Omega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1) ...
-                            - Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2); %the sign here may be wrong - i feel intuitively that it aught to be positive
-                        ergVec(l+1) = ergVec(l+1) + eOmega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1) ...
-                            - eOmega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2); %likewise with sign
+                        numVec(l+1) = numVec(l+1) + Omega(j+1,k+1)*eta(2*(j*NT+l)+1)*eta(2*(k*NT+l)+1) ...
+                            - Omega(j+1,k+1)*eta(2*(j*NT+l)+2)*eta(2*(k*NT+l)+2); %the sign here may be wrong - i feel intuitively that it aught to be positive
+                        ergVec(l+1) = ergVec(l+1) + eOmega(j+1,k+1)*eta(2*(j*NT+l)+1)*eta(2*(k*NT+l)+1) ...
+                            - eOmega(j+1,k+1)*eta(2*(j*NT+l)+2)*eta(2*(k*NT+l)+2); %likewise with sign
     %extra boundary term vanishes for the periodic instanton (theta = 0)
                     end
                 end
@@ -281,13 +285,13 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
             for l=0:(Na-1)
                 for j=0:(N-1)
                     for k=0:(N-1)
-                        numVec(l+1) = numVec(l+1) + 2*gamma*Omega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma)^2 ...
-                            + 2*gamma*Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma)^2;
-                        ergVec(l+1) = ergVec(l+1) + 2*gamma*eOmega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma)^2 ...
-                            + 2*gamma*eOmega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma)^2;
+                        numVec(l+1) = numVec(l+1) + 2*gamma*Omega(j+1,k+1)*eta(2*(j*NT+l)+1)*eta(2*(k*NT+l)+1)/(1+gamma)^2 ...
+                            + 2*gamma*Omega(j+1,k+1)*eta(2*(j*NT+l)+2)*eta(2*(k*NT+l)+2)/(1-gamma)^2;
+                        ergVec(l+1) = ergVec(l+1) + 2*gamma*eOmega(j+1,k+1)*eta(2*(j*NT+l)+1)*eta(2*(k*NT+l)+1)/(1+gamma)^2 ...
+                            + 2*gamma*eOmega(j+1,k+1)*eta(2*(j*NT+l)+2)*eta(2*(k*NT+l)+2)/(1-gamma)^2;
                         if l==0
-                            W = W - (1-gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+1)*p(2*(k*NT+l)+1)/(1+gamma) ...
-                                + (1+gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma); %boundary term
+                            W = W - (1-gamma)*Omega(j+1,k+1)*eta(2*(j*NT+l)+1)*eta(2*(k*NT+l)+1)/(1+gamma) ...
+                                + (1+gamma)*Omega(j+1,k+1)*eta(2*(j*NT+l)+2)*eta(2*(k*NT+l)+2)/(1-gamma); %boundary term
                         end
                     end
                 end

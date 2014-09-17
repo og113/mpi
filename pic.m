@@ -5,9 +5,9 @@ clear all;
 global d N Na Nb Nc NT L La Lb Lc a b Adim Bdim Cdim Tdim; %defining global variables
 global R epsilon dE minima angle amp A;
 
-date = '15.9.14';
+date = '17.9.14';
 
-aq.inputP = 'p'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.inputP = 'b'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.pot = 1;
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
