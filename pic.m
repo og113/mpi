@@ -7,7 +7,7 @@ global R epsilon dE minima angle amp A;
 
 date = '17.9.14';
 
-aq.inputP = 'i'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
+aq.inputP = 'q'; %struct to hold answers to questions aq short for 'answers to questions' - defauLbs in initialization
 aq.pot = 1;
 aq.perturbResponse = 'n';
 aq.loopResponse = 'n';
@@ -122,7 +122,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
         betaR = min(abs((minima(1)-phiRho(end))/fitobjectR.p1),5*a);
     end
     if ~strcmp(aq.parameterChoice,'amp')
-        amp = 2*(Lb-R)/R; %determines admixture of negative mode - trial and error
+        amp = (Lb-R)/R/2.0; %determines admixture of negative mode - trial and error
     end
     action = complex(2);
     
@@ -141,17 +141,18 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
     
     p = zeros(2*Bdim+1,1); %phi, in the euclidean domain
     
-    for j=0:(Bdim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
+    clear arg1 arg2;
+    rhoH = @(arg1,arg2) (-arg1.^2 + arg2.^2).^0.5;
+    
+    poolobj = parpool ('local',2);
+    parfor j=0:(Bdim-1) %assigning input phi according to inputP, note that the periodic instanton input is explicitly 2d
         t = eCoord(j,0);
         x = eCoord(j,1);
-        clear arg;
-        rhoH = @(arg1,arg2) (-arg1.^2 + arg2.^2).^0.5;
         rho = real(rhoH(t,x)); %rho should be real even without the real()
         rho1 = real(rhoH(t,x+R*cos(angle)));
         rho2 = real(rhoH(t,x-R*cos(angle))); 
         if R<betaL || R<betaR
             disp(['R is too small. not possible to give thinwall input. it should be more that ',num2str(max(betaL,betaR))]);
-            break
         else
             if strcmp(inP,'t')
                 p(2*j+1) = minima(3);
@@ -203,6 +204,7 @@ for loop=0:(aq.totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 i
             end
         end
     end
+    celete(poolobj);
     
     p(2*Bdim+1) = 0.5; %initializing Lagrange parameter for dp/dx zero mode
     

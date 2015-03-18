@@ -14,11 +14,11 @@ function Xneigh = neigh(locNum, direction, sign, xNt)
             %disp('neigh error 1');
         end
     elseif intCoord(locNum,direction,xNt)==0 && sign==-1
-        Xneigh = locNum + (N-1)*N^(direction-1)*xNt;
+        Xneigh = locNum + (N-1)*xNt;
     elseif intCoord(locNum,direction,xNt)==(N-1) && sign==1
-        Xneigh = locNum - (N-1)*N^(direction-1)*xNt;
+        Xneigh = locNum - (N-1)*xNt;
     else
-        Xneigh = locNum + sign*N^(direction-1)*xNt;
+        Xneigh = locNum + sign*xNt;
     end
 end
     

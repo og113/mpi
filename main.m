@@ -10,7 +10,7 @@ minFileNo = 0;%input('which data/picOut#.mat file to load first? (#) '); %loadin
 maxFileNo = 0;%input('which data/picOut#.mat file to load last? (#) ');
 for fileNo = minFileNo:maxFileNo
 %data = load(['data/',date,'/main','0_0','.mat']);
-data = load(['data/',date,'/picOutp',num2str(fileNo),'.mat']);
+data = load(['data/',date,'/picOutq',num2str(fileNo),'.mat']);
 data.DDS = []; data.minusDS = []; %freeing some memory
 
 eigenData = load(['data/',date,'/eigens.mat']); %NEED TO CHANGE THIS ONCE WE CAN LOOP IN FILENO
@@ -293,8 +293,6 @@ for loop=0:(totalLoops-1) %starting parameter loop, note: answ.totalLoops=1 if a
                         ergVec(l+1) = ergVec(l+1) + 2*gamma*eOmega(j+1,k+1)*eta(2*(j*NT+l)+1)*eta(2*(k*NT+l)+1)/(1+gamma)^2 ...
                             + 2*gamma*eOmega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma)^2;
                         if l==0
-                            W = W - (1-gamma)*Omega(j+1,k+1)*eta(2*(j*NT+l)+1)*eta(2*(k*NT+l)+1)/(1+gamma) ...
-                                + (1+gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma); %boundary term
                             bound = bound - (1-gamma)*Omega(j+1,k+1)*eta(2*(j*NT+l)+1)*eta(2*(k*NT+l)+1)/(1+gamma) ...
                                 + (1+gamma)*Omega(j+1,k+1)*p(2*(j*NT+l)+2)*p(2*(k*NT+l)+2)/(1-gamma); %boundary term
                         end
